@@ -70,60 +70,54 @@ async function fetchDocs() {
   const feed = document.getElementById("feed");
   const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
   const rawYear = document.getElementById("yearFilter").value.trim();
-  const agency = document.getElementById("agencyFilter").value;
-
-  // Fix: Extract year
   const yearMatch = rawYear.match(/\d{4}/);
   const year = yearMatch ? yearMatch[0] : "";
 
-  feed.innerHTML = "<div class='post'>📡 ATTEMPTING SECURE BYPASS...</div>";
+  feed.innerHTML = "<div class='post'>📡 SIGNAL ENCRYPTION BYPASS ACTIVE...</div>";
 
-  // 1. Build a URL-friendly query
-  // GovInfo GET search uses 'query' as a string parameter
+  // 1. Build the target URL
   let apiQuery = userQuery;
-  if (agency) apiQuery += ` AND collection:${agency}`;
   if (year) apiQuery += ` AND publishdate:${year}`;
-
-  // 2. Use a different, simpler proxy (Corsproxy.io) 
-  // This one is often much better for iPhone/GitHub Pages
   const targetUrl = `https://api.govinfo.gov/search?query=${encodeURIComponent(apiQuery)}&pageSize=10&api_key=${API_KEY}`;
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+  // 2. The "Silent" Proxy Wrapper
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
   try {
     const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error("Server Rejected Connection");
+    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
     
-    const data = await res.json();
+    const wrappedData = await res.json();
+    
+    // AllOrigins returns the data as a string in the 'contents' property
+    const data = JSON.parse(wrappedData.contents);
 
     if (!data.results || data.results.length === 0) {
       feed.innerHTML = "<div class='post'>🛑 NO INTEL FOUND. THE SYSTEM IS EMPTY.</div>";
     } else {
       feed.innerHTML = "";
       data.results.forEach(pkg => {
-        // Find "Mind-Blowing" Keywords for the 🔥 score
-        let score = 0;
-        const checkText = (pkg.title + pkg.snippet).toLowerCase();
-        keywords.forEach(k => { if(checkText.includes(k)) score++; });
-        const fireIcons = "🔥".repeat(Math.min(5, score));
-
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px;">[DATA LEAK] ${fireIcons}</div>
+          <div style="color:#0ff; font-size:10px;">[DATA LEAKED]</div>
           <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
-          <p style="font-size:14px; color:#0ff; opacity:0.8;">${pkg.snippet || "No snippet available. Open file to read..."}</p>
+          <p style="font-size:14px; color:#0ff; opacity:0.8;">${pkg.snippet || "Dossier encrypted. View source for details."}</p>
           <div class="meta">
-            📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:2px;">[ACCESS]</a>
+            📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:2px;">[OPEN]</a>
           </div>
         `;
         feed.appendChild(div);
       });
     }
   } catch (err) {
-    feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> The API is blocking the mobile request.</div>`;
+    // This will pop up on your iPhone screen to tell us the EXACT problem
+    alert("SYSTEM ERROR: " + err.message);
+    feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> Error: ${err.message}</div>`;
   }
   isLoading = false;
 }
+
 
 </script>
 
