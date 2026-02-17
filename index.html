@@ -73,28 +73,38 @@ async function fetchDocs() {
   const yearMatch = rawYear.match(/\d{4}/);
   const year = yearMatch ? yearMatch[0] : "";
 
-  feed.innerHTML = "<div class='post'>📡 SIGNAL ENCRYPTION BYPASS ACTIVE...</div>";
+  feed.innerHTML = "<div class='post'>📡 ESTABLISHING POST-LEVEL UPLINK...</div>";
 
-  // Build the most basic query possible
+  // Build the strict query string
   let apiQuery = userQuery;
   if (year) apiQuery += ` AND publishdate:${year}`;
-  
-  // The 400 error often happens if the API key isn't the last parameter or if there are weird characters.
-  // We'll put the API_KEY first to be safe.
-  const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}&query=${encodeURIComponent(apiQuery)}&pageSize=10`;
 
-  // Using a clean proxy link
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+  // The EXACT JSON body GovInfo demands
+  const searchPayload = {
+    "query": apiQuery,
+    "pageSize": 10,
+    "offsetPoint": 0
+  };
+
+  // The Target and the Proxy
+  const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
+  const proxyUrl = `https://cors-anywhere.herokuapp.com/` + targetUrl;
 
   try {
-    const res = await fetch(proxyUrl);
-    
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: JSON.stringify(searchPayload)
+    });
+
     if (!res.ok) {
-      // If we still get a 400, this alert will confirm it
       const errorText = await res.text();
-      throw new Error(`Server Status: ${res.status} - ${errorText}`);
+      throw new Error(`Status ${res.status}: ${errorText}`);
     }
-    
+
     const data = await res.json();
 
     if (!data.results || data.results.length === 0) {
@@ -116,11 +126,12 @@ async function fetchDocs() {
       });
     }
   } catch (err) {
-    alert("CRITICAL ERROR: " + err.message);
-    feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> Error: ${err.message}</div>`;
+    alert("POST ERROR: " + err.message);
+    feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> ${err.message}</div>`;
   }
   isLoading = false;
 }
+
 
 
 
