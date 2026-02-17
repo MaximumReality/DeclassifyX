@@ -115,10 +115,11 @@ async function fetchDocs() {
   let apiQuery = userQuery;
   if (year) apiQuery += ` AND publishdate:${year}`;
 
+  // THE FIX: Adding 'offsetMark' instead of 'offsetPoint'
   const searchPayload = {
     "query": apiQuery,
     "pageSize": 10,
-    "offsetPoint": 0
+    "offsetMark": "*" 
   };
 
   const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
@@ -134,11 +135,13 @@ async function fetchDocs() {
       body: JSON.stringify(searchPayload)
     });
 
-    if (!res.ok) throw new Error(`Status ${res.status}`);
+    if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || `Status ${res.status}`);
+    }
 
     const data = await res.json();
 
-    // Success! Turn the light green
     statusLight.classList.add("online");
     statusText.innerText = "SECURE LINK ACTIVE";
 
@@ -147,14 +150,28 @@ async function fetchDocs() {
     } else {
       feed.innerHTML = "";
       data.results.forEach(pkg => {
+        // Find Mind-Blowing Score
+        let score = 0;
+        const text = (pkg.title + pkg.snippet).toLowerCase();
+        keywords.forEach(k => { if(text.includes(k)) score++; });
+        const fireIcons = "🔥".repeat(Math.min(5, score));
+
         const div = document.createElement("div");
         div.className = "post";
+        
+        // Twitter Share Link Construction
+        const tweetText = encodeURIComponent(`🚨 DECLASSIFIED REVELATION: ${pkg.title} #DeclassifyX`);
+        const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px;">[DATA LEAKED]</div>
+          <div style="color:#0ff; font-size:10px;">[DATA LEAKED] ${fireIcons}</div>
           <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
           <p style="font-size:14px; color:#0ff; opacity:0.8;">${pkg.snippet || "Dossier encrypted. View source for details."}</p>
           <div class="meta">
-            📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:2px;">[OPEN]</a>
+            📅 ${pkg.dateIssued} 
+            <br>
+            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:2px; margin-right:10px;">[OPEN SOURCE]</a>
+            <a href="${tweetUrl}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:2px;">[SHARE TO X]</a>
           </div>
         `;
         feed.appendChild(div);
@@ -163,12 +180,11 @@ async function fetchDocs() {
   } catch (err) {
     statusLight.classList.remove("online");
     statusText.innerText = "CONNECTION TERMINATED";
-    alert("POST ERROR: " + err.message);
+    alert("SYSTEM ERROR: " + err.message);
     feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> ${err.message}</div>`;
   }
   isLoading = false;
 }
-
 
 </script>
 
