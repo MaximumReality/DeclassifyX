@@ -1,286 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>DeclassifyX</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-  <style>
-    body { background:#000; color:#fff; font-family:'Courier New', monospace; padding:20px; overflow-x:hidden; }
-    .controls { margin-bottom:20px; }
-    .controls input, .controls select, button {
-      padding:8px; margin-right:10px; background:rgba(0,0,0,0.6); border:1px solid #0ff; color:#0ff; border-radius:4px;
-    }
-    button:hover { background:#0ff; color:#000; cursor:pointer; animation:glitch 0.2s infinite alternate; }
-    #feed { display:flex; flex-direction:column; gap:15px; }
-    .post { border-left:4px solid #0ff; padding:15px; background:rgba(0,0,0,0.7); position:relative; animation:pulse 2s infinite alternate; }
-    .post:hover { border-color:#ff0; box-shadow:0 0 10px #0ff,0 0 20px #f0f; }
-    .meta { font-size:12px; color:#0ff; margin-top:5px; }
-    @keyframes pulse { 0% { box-shadow:0 0 5px #0ff;} 50% { box-shadow:0 0 15px #0ff;} 100% { box-shadow:0 0 5px #0ff;} }
-    @keyframes glitch { 0% { transform: translate(0,0); } 25% { transform: translate(-1px,1px);} 50% { transform: translate(1px,-1px);} 75% { transform: translate(-1px,-1px);} 100% { transform: translate(1px,1px); } }
-    #azul { position:fixed; bottom:10px; right:10px; width:80px; animation:float 3s infinite alternate ease-in-out; }
-    @keyframes float { 0% { transform: translateY(0px);} 100% { transform: translateY(-20px);} }
-  </style>
+<meta charset="UTF-8">
+<title>DeclassifyX</title>
+<style>
+  body { background:#000; color:#0ff; font-family:'Courier New', monospace; padding:20px; overflow-x:hidden; }
+  h1 { color:#0ff; text-align:center; }
+  .controls { margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; }
+  .controls input, .controls select, button {
+    padding:8px; background:rgba(0,0,0,0.6); border:1px solid #0ff; color:#0ff; border-radius:4px;
+  }
+  button:hover { background:#0ff; color:#000; cursor:pointer; }
+  #feed { display:flex; flex-direction:column; gap:15px; }
+  .post { border-left:4px solid #0ff; padding:15px; background:rgba(0,0,0,0.7); }
+  .meta { font-size:12px; color:#0ff; margin-top:5px; }
+  #azul { position:fixed; bottom:10px; right:10px; width:80px; animation:float 3s infinite alternate ease-in-out; }
+  @keyframes float { 0% { transform: translateY(0px);} 100% { transform: translateY(-20px);} }
+</style>
 </head>
 <body>
 
-  <!-- Azul Hacker Cat -->
-  <img id="azul" src="azul-cat.png" alt="Azul Hacker Cat">
+<img id="azul" src="azul-cat.png" alt="Azul Hacker Cat">
+<h1>📂 DeclassifyX</h1>
 
-  <h1>📂 DeclassifyX</h1>
+<div class="controls">
+  <input type="text" id="searchQuery" placeholder="Keyword (CIA, nuclear, etc)">
+  <input type="text" id="yearFilter" placeholder="Year (1975)">
+  <select id="agencyFilter">
+    <option value="">All Agencies</option>
+    <option value="BILLS">BILLS</option>
+    <option value="CREC">CREC</option>
+    <option value="USCOURTS">USCOURTS</option>
+    <option value="FR">FR</option>
+  </select>
+  <button id="searchButton">Search</button>
+</div>
 
-  <!-- Search Controls -->
-  <div class="controls">
-    <input type="text" id="searchQuery" placeholder="Keyword (CIA, nuclear, etc)">
-    <input type="text" id="yearFilter" placeholder="Year (1975)">
-    <select id="agencyFilter">
-      <option value="">All Agencies</option>
-      <option value="CIA">CIA</option>
-      <option value="DOD">Department of Defense</option>
-      <option value="NSA">NSA</option>
-      <option value="DOE">Department of Energy</option>
-    </select>
-    <button id="searchButton">Search</button>
-  </div>
+<div id="feed"></div>
 
-  <!-- Feed -->
-  <div id="feed"></div>
+<audio id="bgMusic" loop>
+  <source src="synthwave-loop.mp3" type="audio/mpeg">
+</audio>
 
-  <!-- Background music -->
-  <audio id="bgMusic" loop>
-    <source src="synthwave-loop.mp3" type="audio/mpeg">
-  </audio>
+<script>
+const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
+const BASE_URL = "https://api.govinfo.gov";
+let nextPageToken = null;
+let isLoading = false;
 
-  <!-- Script -->
-  <script>
-  // ==============================
-  // 🔐 GOVINFO CONFIG
-  // ==============================
-  const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
-  const BASE_URL = "https://api.govinfo.gov";
+// Music autoplay for mobile
+const music = document.getElementById("bgMusic");
+let musicStarted = false;
 
-  // ==============================
-  // 🐱 AZUL DYNAMIC PULSE
-  // ==============================
-  let azulState = false;
-  let azulSpeed = 800;
-  let azulInterval;
-  let maxShock = 0;
+// Azul cat pulse
+let azulState = false;
+let azul = document.getElementById("azul");
+setInterval(() => {
+  azulState = !azulState;
+  azul.src = azulState ? "azul-cat2.png" : "azul-cat.png";
+}, 800);
 
-  function startAzulPulse() {
-    const azul = document.getElementById("azul");
-    if (!azul) return;
-    clearInterval(azulInterval);
-    azulInterval = setInterval(() => {
-      azulState = !azulState;
-      azul.src = azulState ? "azul-cat2.png" : "azul-cat.png";
-      if (azulSpeed < 800 && maxShock <= 1) {
-        azulSpeed += 20;
-        startAzulPulse();
-      }
-    }, azulSpeed);
-  }
+// Keywords for 🔥 scoring
+const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence"];
 
-  function updateAzulPulseBasedOnShock(shockLevel) {
-    maxShock = Math.max(maxShock, shockLevel);
-    const speedMap = [800,600,400,250,150,100];
-    azulSpeed = speedMap[shockLevel] || 800;
-    startAzulPulse();
-    setTimeout(()=>{ maxShock = Math.max(0,maxShock-1); }, 4000);
-  }
+// Search button
+document.getElementById("searchButton").addEventListener("click", () => {
+  if(!musicStarted){ music.play().catch(e=>console.log("Music blocked:",e)); musicStarted=true; }
+  nextPageToken = null;
+  document.getElementById("feed").innerHTML = "";
+  fetchDocs();
+});
 
-  startAzulPulse();
+// Fetch documents
+async function fetchDocs(loadMore=false){
+  if(isLoading) return;
+  isLoading = true;
 
-  // ==============================
-  // 🔍 SEARCH STATE
-  // ==============================
-  let nextPageToken = null;
-  let isLoading = false;
+  const query = document.getElementById("searchQuery").value.trim() || "nuclear";
+  const year = document.getElementById("yearFilter").value.trim();
+  const agency = document.getElementById("agencyFilter").value;
 
-  // ==============================
-  // 🎵 MOBILE MUSIC START
-  // ==============================
-  const searchBtn = document.getElementById("searchButton");
-  const music = document.getElementById("bgMusic");
-  let musicStarted = false;
+  const searchBody = {
+    query: query,
+    pageSize: 10,
+    pageToken: nextPageToken || undefined,
+    filters: {}
+  };
+  if(year) searchBody.filters.dateIssued = `${year}-01-01:${year}-12-31`;
+  if(agency) searchBody.filters.collection = agency;
 
-  searchBtn.addEventListener("click", () => {
-    if (!musicStarted) { music.play().catch(e=>console.log("Music blocked:",e)); musicStarted=true; }
-    fetchDocs();
-  });
+  try{
+    const res = await fetch(`${BASE_URL}/search?api_key=${API_KEY}`,{
+      method:"POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(searchBody)
+    });
+    const data = await res.json();
+    if(!data.results || data.results.length === 0){
+      console.log("No results found");
+      isLoading=false;
+      return;
+    }
 
-  // ==============================
-  // 🔎 FETCH DOCS
-  // ==============================
-  async function fetchDocs(loadMore=false){
-    if(isLoading) return;
-    isLoading=true;
+    nextPageToken = data.nextPageToken || null;
 
-    const query=document.getElementById("searchQuery").value.trim();
-    const year=document.getElementById("yearFilter").value.trim();
-    const agency=document.getElementById("agencyFilter").value;
+    for(let pkg of data.results){
+      const sumRes = await fetch(`${BASE_URL}/packages/${pkg.packageId}/summary?api_key=${API_KEY}`);
+      const summary = await sumRes.json();
+      const text = (summary.summary || summary.title || "No content").toLowerCase();
 
-    if(!loadMore){ document.getElementById("feed").innerHTML=""; nextPageToken=null; }
+      // Compute 🔥 score
+      let score = 0;
+      keywords.forEach(k => { if(text.includes(k)) score += 5; });
+      if(/\d{4}/.test(text)) score += 2;
+      const fireIcons = "🔥".repeat(Math.min(5, Math.ceil(score/5)));
 
-    const searchQuery={
-      query: query||"nuclear",
-      pageSize:10,
-      pageToken: nextPageToken||undefined,
-      filters:{}
-    };
-    if(year){ searchQuery.filters.dateIssued=`${year}-01-01:${year}-12-31`; }
-    if(agency){ searchQuery.filters.collection=agency; }
-
-    try{
-      const res=await fetch(`${BASE_URL}/search?api_key=${API_KEY}`,{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(searchQuery)
-      });
-      const data=await res.json();
-
-      if(!data.results || data.results.length===0){ console.log("No results"); isLoading=false; return; }
-
-      nextPageToken=data.nextPageToken||null;
-      await processPackagesProgressively(data.results);
-    }catch(err){ console.log("Search error:",err); }
-    isLoading=false;
-  }
-
-// ==============================
-// 📦 PROCESS RESULTS WITH PROGRESS
-// ==============================
-async function processPackagesProgressively(results){
-  const feed = document.getElementById("feed");
-
-  let status = document.createElement("div");
-  status.id = "processingStatus";
-  status.innerText = `Processing ${results.length} results...`;
-  feed.appendChild(status);
-
-  for(let i=0; i<results.length; i++){
-    const pkg = results[i];
-
-    // Create placeholder post immediately
-    const placeholder = document.createElement("div");
-    placeholder.className = "post";
-    placeholder.innerHTML = `
-      <div>Loading "${pkg.title || 'Untitled'}"...</div>
-      <div class="meta">📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}</div>
-    `;
-    feed.appendChild(placeholder);
-
-    try {
-      // Fetch summary PDF text if available
-      let textContent = "";
-      const summaryRes = await fetch(`${BASE_URL}/packages/${pkg.packageId}/summary?api_key=${API_KEY}`);
-      const summaryData = await summaryRes.json();
-      if(summaryData.download && summaryData.download.pdfLink){
-        textContent = await parsePdf(summaryData.download.pdfLink);
-      }
-
-      // Extract sentences
-      const sentences = extractInterestingSentences(textContent || pkg.title || "No content", pkg);
-
-      // Replace placeholder with first interesting sentence
-      if(sentences.length>0){
-        placeholder.innerHTML = `
-          <div>${sentences[0]}</div>
-          <div class="meta">
-            ${"🔥".repeat(Math.min(5, Math.ceil(sentences[0].score/5)))} 📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}
-            <br>
-            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#f0f">View Source</a>
-          </div>
-        `;
-      } else {
-        placeholder.innerHTML = `
-          <div>${pkg.title || "No content"}</div>
-          <div class="meta">📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}</div>
-        `;
-      }
-
-    } catch(err) {
-      console.log("Summary fetch error:", err);
-      placeholder.innerHTML = `
-        <div>Error loading "${pkg.title || 'Untitled'}"</div>
-        <div class="meta">📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}</div>
+      // Render post
+      const div = document.createElement("div");
+      div.className = "post";
+      div.innerHTML = `
+        <div>${summary.title || "Untitled"}</div>
+        <div>${summary.summary || "No summary available"}</div>
+        <div class="meta">${fireIcons} 📁 ${summary.collectionCode || "N/A"} | 📅 ${summary.dateIssued || "Unknown"}
+        <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#f0f">View Source</a></div>
       `;
+      document.getElementById("feed").appendChild(div);
     }
 
-    await new Promise(r=>setTimeout(r,300));
-  }
+  } catch(err){ console.log("Error fetching documents:", err); }
 
-  status.remove();
+  isLoading=false;
 }
 
-// ==============================
-// 🔥 EXTRACT INTERESTING SENTENCES
-// ==============================
-function extractInterestingSentences(text, pkg){
-  const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence"];
-  const sentencesArr = text.split(". ").map(s => s.trim()).filter(s => s.length>10);
-
-  return sentencesArr.map(sentence => {
-    let score = 0;
-    keywords.forEach(word => { if(sentence.toLowerCase().includes(word)) score+=5; });
-    if(/\d{4}/.test(sentence)) score+=2;
-    return {sentence, score};
-  }).sort((a,b)=>b.score-a.score);
-}
-
-  // ==============================
-  // 📄 PARSE PDF
-  // ==============================
-  async function parsePdf(url){
-    const pdf=await pdfjsLib.getDocument(url).promise;
-    let fullText="";
-    const maxPages=Math.min(pdf.numPages,10);
-    for(let i=1;i<=maxPages;i++){
-      const page=await pdf.getPage(i);
-      const content=await page.getTextContent();
-      fullText+=content.items.map(it=>it.str).join(" ")+" ";
-    }
-    return fullText;
+// Infinite scroll
+window.addEventListener("scroll", () => {
+  if((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300){
+    if(nextPageToken && !isLoading) fetchDocs(true);
   }
+});
+</script>
 
-  // ==============================
-  // 📰 RENDER POST
-  // ==============================
-  function renderPost(text,date,collection,packageId,score){
-    const feed=document.getElementById("feed");
-    const div=document.createElement("div");
-    div.className="post";
-
-    const shockLevel=Math.min(5, Math.ceil(score/5));
-    const fireIcons="🔥".repeat(shockLevel);
-    if(shockLevel>0) updateAzulPulseBasedOnShock(shockLevel);
-
-    const glitchOffset=()=>((Math.random()*4-2)+"px");
-
-    div.innerHTML=`
-      <div style="position:relative; left:${glitchOffset()}; top:${glitchOffset()};">
-        ${text}
-      </div>
-      <div class="meta">
-        ${fireIcons} 📅 ${date||"Unknown"} | 📁 ${collection||"N/A"}
-        <br>
-        <a href="https://www.govinfo.gov/app/details/${packageId}" target="_blank" style="color:#f0f">
-          View Source
-        </a>
-      </div>
-    `;
-
-    feed.appendChild(div);
-  }
-
-  // ==============================
-  // ♾ INFINITE SCROLL
-  // ==============================
-  window.addEventListener("scroll",()=>{
-    if((window.innerHeight+window.scrollY)>=document.body.offsetHeight-300){
-      if(nextPageToken && !isLoading) fetchDocs(true);
-    }
-  });
-  </script>
 </body>
 </html>
