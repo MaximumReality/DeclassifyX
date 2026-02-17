@@ -237,3 +237,19 @@ window.addEventListener("scroll", () => {
     }
   }
 });
+// Grab elements
+const searchBtn = document.getElementById("searchButton");
+const music = document.getElementById("bgMusic");
+
+// Start music on first tap
+let musicStarted = false;
+
+searchBtn.addEventListener("click", () => {
+  if (!musicStarted) {
+    music.play().catch(e => console.log("Music playback blocked:", e));
+    musicStarted = true;
+  }
+
+  // Call your existing fetchDocs()
+  fetchDocs();
+});
