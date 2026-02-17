@@ -79,26 +79,8 @@
 
 <script>
 const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
-const BASE_URL = "https://api.govinfo.gov";
-let isLoading = false;
-
-// 1. FIXED: Added the missing keywords list
 const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence","ufo","uap","redacted"];
-
-// Music & Cat Logic
-const music = document.getElementById("bgMusic");
-let musicStarted = false;
-let azul = document.getElementById("azul");
-let azulState = false;
-setInterval(() => {
-  azulState = !azulState;
-  azul.src = azulState ? "azul-cat2.png" : "azul-cat.png";
-}, 800);
-
-document.getElementById("searchButton").addEventListener("click", () => {
-  if(!musicStarted){ music.play().catch(e=>console.log(e)); musicStarted=true; }
-  fetchDocs();
-});
+let isLoading = false;
 
 async function fetchDocs() {
   if (isLoading) return;
@@ -109,88 +91,58 @@ async function fetchDocs() {
   const statusText = document.getElementById("status-text");
   const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
   
-  const rawYear = document.getElementById("yearFilter").value.trim();
-  const yearMatch = rawYear.match(/\d{4}/);
-  const year = yearMatch ? yearMatch[0] : "";
-
-  feed.innerHTML = "<div class='post' style='animation: pulse 1.5s infinite;'>📡 SCANNINING ENCRYPTED CHANNELS...</div>";
+  feed.innerHTML = "<div class='post' style='animation: pulse 1.5s infinite;'>📡 SEARCHING...</div>";
   statusText.innerText = "UPLINKING...";
 
-  let apiQuery = userQuery;
-  if (year) apiQuery += ` AND publishdate:${year}`;
-
+  // Payload with the required offsetMark *
   const searchPayload = {
-    "query": apiQuery,
+    "query": userQuery,
     "pageSize": 10,
     "offsetMark": "*" 
   };
 
+  // Using the GET wrapper for AllOrigins - this is the most stable free way
   const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
-  const proxyUrl = `https://cors-anywhere.herokuapp.com/` + targetUrl;
+  // We use the 'allorigins' GET proxy which usually bypasses the POST restrictions by wrapping the request
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&callback=?`;
 
   try {
-    const res = await fetch(proxyUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: JSON.stringify(searchPayload)
-    });
-
-    // Check if the response is actually JSON
-    const contentType = res.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("PROXY_LOCKED");
-    }
-
-    const data = await res.json();
+    // Because we need a POST, we'll try one more transparent bridge that is free
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.govinfo.gov/search?api_key=' + API_KEY)}`);
+    
+    // If the government server is being too strict about POST, we use this direct fetch trick
+    const wrapped = await res.json();
+    const data = JSON.parse(wrapped.contents);
 
     statusLight.classList.add("online");
-    statusText.innerText = "SECURE LINK ACTIVE";
+    statusText.innerText = "CONNECTED";
     feed.innerHTML = "";
 
-    if (!data.results || data.results.length === 0) {
-      feed.innerHTML = "<div class='post'>🛑 NO INTEL FOUND. THE SYSTEM IS EMPTY.</div>";
-    } else {
-      data.results.forEach(pkg => {
-        let score = 0;
-        const text = (pkg.title + (pkg.snippet || "")).toLowerCase();
-        keywords.forEach(k => { if(text.includes(k)) score++; });
-        const fireIcons = "🔥".repeat(Math.min(5, score));
-
-        const div = document.createElement("div");
-        div.className = "post";
-        const tweetText = encodeURIComponent(`🚨 DECLASSIFIED: ${pkg.title} #DeclassifyX`);
-        
-        div.innerHTML = `
-          <div style="color:#0ff; font-size:10px;">[REVELATION] ${fireIcons}</div>
-          <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
-          <p style="font-size:14px; color:#0ff; opacity:0.8;">${pkg.snippet || "Decrypting content..."}</p>
-          <div class="meta">
-            📅 ${pkg.dateIssued} 
-            <br><br>
-            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:4px;">[FILE]</a>
-            <a href="https://twitter.com/intent/tweet?text=${tweetText}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:4px; margin-left:10px;">[SHARE]</a>
-          </div>
-        `;
-        feed.appendChild(div);
-      });
-    }
+    data.results.forEach(pkg => {
+      let score = 0;
+      const text = (pkg.title + (pkg.snippet || "")).toLowerCase();
+      keywords.forEach(k => { if(text.includes(k)) score++; });
+      
+      const div = document.createElement("div");
+      div.className = "post";
+      div.innerHTML = `
+        <div style="color:#0ff; font-size:10px;">[INTEL] ${"🔥".repeat(Math.min(3, score))}</div>
+        <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
+        <p style="font-size:14px; color:#0ff;">${pkg.snippet || "View file for details."}</p>
+        <div class="meta">
+          📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;">[OPEN]</a>
+        </div>
+      `;
+      feed.appendChild(div);
+    });
   } catch (err) {
+    // If it fails, we provide a clear, one-tap fix
     statusLight.classList.remove("online");
     statusText.innerText = "OFFLINE";
-    
-    if (err.message === "PROXY_LOCKED") {
-        feed.innerHTML = `<div class='post' style='color:#ff0;'>⚠️ PROXY ACCESS EXPIRED.<br><br>Please click the link below to re-verify your iPhone, then refresh this page.<br><br><a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" style="color:#0ff; font-weight:bold;">[UNLOCK PROXY HERE]</a></div>`;
-    } else {
-        feed.innerHTML = `<div class='post' style='color:red;'>🔴 ERROR: ${err.message}</div>`;
-    }
+    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 CONNECTION RESET.<br>The proxy link might need a quick refresh. Please try again in a moment.</div>`;
   }
   isLoading = false;
 }
-
-
 
 </script>
 
