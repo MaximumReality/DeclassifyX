@@ -46,39 +46,22 @@
 <script>
 const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
 const BASE_URL = "https://api.govinfo.gov";
-let nextPageToken = null;
 let isLoading = false;
 
-// Music autoplay for mobile
+// Music & Cat Logic (Keeping your vibes intact)
 const music = document.getElementById("bgMusic");
 let musicStarted = false;
-
-// Azul cat pulse
-let azulState = false;
 let azul = document.getElementById("azul");
+let azulState = false;
 setInterval(() => {
   azulState = !azulState;
   azul.src = azulState ? "azul-cat2.png" : "azul-cat.png";
 }, 800);
 
-// Keywords for 🔥 scoring
-const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence"];
-
-// Search button
 document.getElementById("searchButton").addEventListener("click", () => {
-  if(!musicStarted){ music.play().catch(e=>console.log("Music blocked:",e)); musicStarted=true; }
-  nextPageToken = null;
-  document.getElementById("feed").innerHTML = "";
+  if(!musicStarted){ music.play().catch(e=>console.log(e)); musicStarted=true; }
   fetchDocs();
 });
-
-// Fetch documents
-// --- NEW: Add a Random Intelligence Keyword ---
-const randomIntel = () => {
-  const terms = ["unidentified aerial", "clandestine", "signal intelligence", "covert", "plutonium", "black operations"];
-  document.getElementById("searchQuery").value = terms[Math.floor(Math.random() * terms.length)];
-  fetchDocs();
-};
 
 async function fetchDocs() {
   if (isLoading) return;
@@ -86,69 +69,61 @@ async function fetchDocs() {
   
   const feed = document.getElementById("feed");
   const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
+  const rawYear = document.getElementById("yearFilter").value.trim();
   const agency = document.getElementById("agencyFilter").value;
 
-  feed.innerHTML = "<div class='post'>DECRYPTING SATELLITE FEED...</div>";
+  // Fix: Extract year
+  const yearMatch = rawYear.match(/\d{4}/);
+  const year = yearMatch ? yearMatch[0] : "";
 
-  // 1. Build the Search Body
-  const searchBody = {
-    "query": agency ? `${userQuery} AND collection:${agency}` : userQuery,
-    "pageSize": 10,
-    "offsetPoint": 0
-  };
+  feed.innerHTML = "<div class='post'>📡 ATTEMPTING SECURE BYPASS...</div>";
 
-  // 2. iPhone-Friendly Proxy (AllOrigins)
-  // We use AllOrigins to fetch the data as a string, then parse it.
-  const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+  // 1. Build a URL-friendly query
+  // GovInfo GET search uses 'query' as a string parameter
+  let apiQuery = userQuery;
+  if (agency) apiQuery += ` AND collection:${agency}`;
+  if (year) apiQuery += ` AND publishdate:${year}`;
+
+  // 2. Use a different, simpler proxy (Corsproxy.io) 
+  // This one is often much better for iPhone/GitHub Pages
+  const targetUrl = `https://api.govinfo.gov/search?query=${encodeURIComponent(apiQuery)}&pageSize=10&api_key=${API_KEY}`;
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
   try {
-    const res = await fetch(proxyUrl, {
-      method: 'POST', // AllOrigins will forward our POST request
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(searchBody)
-    });
-
-    // If POST through AllOrigins is tricky, we use their GET wrapper
-    const wrappedData = await res.json();
-    const data = JSON.parse(wrappedData.contents); // AllOrigins puts the result in 'contents'
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error("Server Rejected Connection");
+    
+    const data = await res.json();
 
     if (!data.results || data.results.length === 0) {
-      feed.innerHTML = "<div class='post'>NO DATA FOUND. TRY KEYWORD: 'UFO'</div>";
+      feed.innerHTML = "<div class='post'>🛑 NO INTEL FOUND. THE SYSTEM IS EMPTY.</div>";
     } else {
       feed.innerHTML = "";
       data.results.forEach(pkg => {
-        // Calculate 🔥 Score
+        // Find "Mind-Blowing" Keywords for the 🔥 score
         let score = 0;
-        const text = (pkg.title + pkg.snippet).toLowerCase();
-        keywords.forEach(k => { if(text.includes(k)) score += 1; });
-        const fire = "🔥".repeat(Math.min(5, score));
+        const checkText = (pkg.title + pkg.snippet).toLowerCase();
+        keywords.forEach(k => { if(checkText.includes(k)) score++; });
+        const fireIcons = "🔥".repeat(Math.min(5, score));
 
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px;">[REVELATION FOUND] ${fire}</div>
-          <div style="font-weight:bold; color:#f0f; margin: 5px 0;">${pkg.title}</div>
-          <p style="font-size:14px;">${pkg.snippet || "Classified summary..."}</p>
+          <div style="color:#0ff; font-size:10px;">[DATA LEAK] ${fireIcons}</div>
+          <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
+          <p style="font-size:14px; color:#0ff; opacity:0.8;">${pkg.snippet || "No snippet available. Open file to read..."}</p>
           <div class="meta">
-            📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;">[VIEW DOSSIER]</a>
+            📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:2px;">[ACCESS]</a>
           </div>
         `;
         feed.appendChild(div);
       });
     }
   } catch (err) {
-    console.error(err);
-    feed.innerHTML = `<div class='post' style='color:red;'>CONNECTION LOST. Ensure your API Key is valid.</div>`;
+    feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> The API is blocking the mobile request.</div>`;
   }
   isLoading = false;
 }
-
-// Add the Random button to your HTML controls manually or via JS:
-const btn = document.createElement("button");
-btn.innerHTML = "🎲 Random Intel";
-btn.onclick = randomIntel;
-document.querySelector(".controls").appendChild(btn);
 
 </script>
 
