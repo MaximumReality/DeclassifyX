@@ -65,21 +65,26 @@ async function fetchDocs() {
 
   const feed = document.getElementById("feed");
   const statusLight = document.getElementById("status-light");
-  const statusText = document.getElementById("status-text");
-  const query = document.getElementById("searchQuery").value.trim() || "declassified";
+  const queryInput = document.getElementById("searchQuery").value.trim() || "intelligence";
+  const yearInput = document.getElementById("yearFilter").value.trim();
 
-  feed.innerHTML = "<div class='post'>📡 ATTEMPTING SECURE BYPASS...</div>";
-  statusText.innerText = "UPLINKING...";
+  feed.innerHTML = "<div class='post'>📡 FILTERING SECTOR DATA...</div>";
   statusLight.style.background = "#ff0"; 
 
-  // The Exact JSON format the GovInfo API requires
+  // PRECISION FILTERING:
+  // We use 'publishdate' to force the year and 'sort' to keep it chronological
+  let finalQuery = queryInput;
+  if (yearInput.match(/\d{4}/)) {
+      finalQuery = `${queryInput} AND publishdate:${yearInput.match(/\d{4}/)[0]}`;
+  }
+
   const payload = {
-    "query": query,
+    "query": finalQuery,
     "pageSize": 10,
-    "offsetMark": "*"
+    "offsetMark": "*",
+    "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }] // Newest first
   };
 
-  // Using a robust POST-capable free proxy
   const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
   const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
 
@@ -90,41 +95,40 @@ async function fetchDocs() {
       body: JSON.stringify(payload)
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
     const data = await res.json();
 
     if (data.results && data.results.length > 0) {
       statusLight.style.background = "#0f0";
-      statusText.innerText = "LINK ACTIVE";
       feed.innerHTML = "";
 
       data.results.forEach(pkg => {
-        let score = 0;
-        const text = (pkg.title + (pkg.snippet || "")).toLowerCase();
-        keywords.forEach(k => { if(text.includes(k)) score++; });
-
+        // Only show the post if it's not a random legislative "bill" (unless you want those)
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px;">[DATA SOURCE: ${pkg.collectionCode}]</div>
-          <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
-          <p style="font-size:14px; line-height:1.4;">${pkg.snippet || "Access dossier for full text..."}</p>
-          <div class="meta">📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; border:1px solid #0ff; padding:2px; text-decoration:none;">[OPEN]</a></div>
+          <div style="color:#0ff; font-size:10px; border-bottom:1px solid #333; margin-bottom:5px;">
+            [VERIFIED RECORD: ${pkg.dateIssued}]
+          </div>
+          <div style="font-weight:bold; color:#f0f; margin-bottom:5px;">${pkg.title}</div>
+          <p style="font-size:14px; line-height:1.4; color:#fff; opacity:0.9;">
+            ${pkg.snippet ? pkg.snippet : "Click source to decrypt full dossier..."}
+          </p>
+          <div class="meta">
+            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#0ff; text-decoration:none;">[VIEW ORIGINAL PDF]</a>
+          </div>
         `;
         feed.appendChild(div);
       });
     } else {
-      feed.innerHTML = "<div class='post'>🛑 NO RESULTS IN THIS SECTOR. TRY 'CIA' OR 'NUCLEAR'.</div>";
+      feed.innerHTML = "<div class='post'>🛑 NO MATCHING INTEL FOR THAT YEAR/KEYWORD.</div>";
     }
   } catch (err) {
     statusLight.style.background = "#f00";
-    statusText.innerText = "OFFLINE";
-    // This displays the error directly in the feed so you can tell me what it says
-    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 SIGNAL LOST.<br>Reason: ${err.message}<br><br>Tip: Ensure your iPhone has a strong connection and try a simple keyword.</div>`;
+    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 SIGNAL TIMEOUT. Reason: ${err.message}</div>`;
   }
   isLoading = false;
 }
+
 
 </script>
 </body>
