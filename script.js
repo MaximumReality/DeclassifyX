@@ -5,11 +5,10 @@ const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
 const PAGE_SIZE = 5;
 const POSTS_PER_BATCH = 10;
 
-
 // ==============================
 // 🧠 STATE
 // ==============================
-let currentOffset = 0;
+let nextOffsetMark = "*";
 let isLoading = false;
 let currentQuery = "declassified";
 let seenSentences = new Set();
@@ -18,7 +17,7 @@ let seenSentences = new Set();
 // 🐱 AZUL PULSE SYSTEM
 // ==============================
 let azulState = false;
-let azulSpeed = 800; // normal pulse
+let azulSpeed = 800;
 let azulInterval;
 
 function startAzulPulse() {
@@ -50,9 +49,10 @@ async function fetchDocs() {
   const year = document.getElementById("yearFilter").value;
   const agency = document.getElementById("agencyFilter").value;
 
-  currentOffset = 0;
   seenSentences.clear();
   document.getElementById("feed").innerHTML = "";
+
+  nextOffsetMark = "*";
 
   currentQuery = query;
   if (year) currentQuery += ` ${year}`;
@@ -71,21 +71,43 @@ window.addEventListener("scroll", () => {
 });
 
 // ==============================
-// 📥 LOAD MORE DOCUMENTS
+// 📥 LOAD MORE DOCUMENTS (POST)
 // ==============================
 async function loadMore() {
   if (isLoading) return;
+  if (!nextOffsetMark) return;
+
   isLoading = true;
+  setAzulSpeed(200);
 
-  setAzulSpeed(200); // faster pulse while loading
+  const url = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
 
-  const url = `https://api.govinfo.gov/search?query=${encodeURIComponent(currentQuery)}&offset=${currentOffset}&pageSize=${PAGE_SIZE}&api_key=${API_KEY}`;
+  const requestBody = {
+    query: currentQuery,
+    pageSize: PAGE_SIZE,
+    offsetMark: nextOffsetMark,
+    sortOrder: "DESC"
+  };
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(requestBody)
+    });
+
     const data = await response.json();
 
-    currentOffset += PAGE_SIZE;
+    if (!data.packages || data.packages.length === 0) {
+      nextOffsetMark = null;
+      isLoading = false;
+      setAzulSpeed(800);
+      return;
+    }
+
+    nextOffsetMark = data.nextPageOffsetMark || null;
 
     let allSentences = [];
 
@@ -107,7 +129,6 @@ async function loadMore() {
       allSentences = allSentences.concat(scored);
     }
 
-    // Sort by shock score
     allSentences.sort((a, b) => b.score - a.score);
 
     let count = 0;
@@ -134,7 +155,7 @@ async function loadMore() {
     console.error("Load error:", error);
   }
 
-  setAzulSpeed(800); // calm pulse after loading
+  setAzulSpeed(800);
   isLoading = false;
 }
 
@@ -155,7 +176,7 @@ async function getPdfUrl(packageId) {
 }
 
 // ==============================
-// 📚 PARSE PDF (first 10 pages only)
+// 📚 PARSE PDF (first 10 pages)
 // ==============================
 async function parsePdf(url) {
   const loadingTask = pdfjsLib.getDocument(url);
@@ -223,7 +244,6 @@ function renderPost(text, date, collection, packageId, score) {
   const shockLevel = Math.min(5, Math.ceil(score / 5));
   const fireIcons = "🔥".repeat(shockLevel);
 
-  // Overload reaction for max shock
   if (shockLevel >= 5) {
     setAzulSpeed(100);
     setTimeout(() => setAzulSpeed(800), 2000);
