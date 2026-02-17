@@ -147,37 +147,86 @@
     isLoading=false;
   }
 
-  // ==============================
-  // 📦 PROCESS RESULTS
-  // ==============================
-  async function processPackagesProgressively(results){
-    const feed=document.getElementById("feed");
-    let status=document.createElement("div");
-    status.id="processingStatus";
-    status.innerText=`Processing ${results.length} results...`;
-    feed.appendChild(status);
+// ==============================
+// 📦 PROCESS RESULTS WITH PROGRESS
+// ==============================
+async function processPackagesProgressively(results){
+  const feed = document.getElementById("feed");
 
-    for(let i=0;i<results.length;i++){
-      const pkg=results[i];
+  let status = document.createElement("div");
+  status.id = "processingStatus";
+  status.innerText = `Processing ${results.length} results...`;
+  feed.appendChild(status);
 
-      // Basic post immediately
-      renderPost(pkg.title||"Untitled", pkg.dateIssued, pkg.collectionCode, pkg.packageId, 1);
+  for(let i=0; i<results.length; i++){
+    const pkg = results[i];
 
-      // Fetch PDF summary if available
-      try{
-        const summaryRes=await fetch(`${BASE_URL}/packages/${pkg.packageId}/summary?api_key=${API_KEY}`);
-        const summaryData=await summaryRes.json();
-        if(summaryData.download && summaryData.download.pdfLink){
-          const text=await parsePdf(summaryData.download.pdfLink);
-          extractInterestingSentences(text, summaryData);
-        }
-      }catch(err){ console.log("Summary fetch error:",err); }
+    // Create placeholder post immediately
+    const placeholder = document.createElement("div");
+    placeholder.className = "post";
+    placeholder.innerHTML = `
+      <div>Loading "${pkg.title || 'Untitled'}"...</div>
+      <div class="meta">📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}</div>
+    `;
+    feed.appendChild(placeholder);
 
-      await new Promise(r=>setTimeout(r,300));
+    try {
+      // Fetch summary PDF text if available
+      let textContent = "";
+      const summaryRes = await fetch(`${BASE_URL}/packages/${pkg.packageId}/summary?api_key=${API_KEY}`);
+      const summaryData = await summaryRes.json();
+      if(summaryData.download && summaryData.download.pdfLink){
+        textContent = await parsePdf(summaryData.download.pdfLink);
+      }
+
+      // Extract sentences
+      const sentences = extractInterestingSentences(textContent || pkg.title || "No content", pkg);
+
+      // Replace placeholder with first interesting sentence
+      if(sentences.length>0){
+        placeholder.innerHTML = `
+          <div>${sentences[0]}</div>
+          <div class="meta">
+            ${"🔥".repeat(Math.min(5, Math.ceil(sentences[0].score/5)))} 📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}
+            <br>
+            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#f0f">View Source</a>
+          </div>
+        `;
+      } else {
+        placeholder.innerHTML = `
+          <div>${pkg.title || "No content"}</div>
+          <div class="meta">📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}</div>
+        `;
+      }
+
+    } catch(err) {
+      console.log("Summary fetch error:", err);
+      placeholder.innerHTML = `
+        <div>Error loading "${pkg.title || 'Untitled'}"</div>
+        <div class="meta">📁 ${pkg.collectionCode || "N/A"} | 📅 ${pkg.dateIssued || "Unknown"}</div>
+      `;
     }
 
-    status.remove();
+    await new Promise(r=>setTimeout(r,300));
   }
+
+  status.remove();
+}
+
+// ==============================
+// 🔥 EXTRACT INTERESTING SENTENCES
+// ==============================
+function extractInterestingSentences(text, pkg){
+  const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence"];
+  const sentencesArr = text.split(". ").map(s => s.trim()).filter(s => s.length>10);
+
+  return sentencesArr.map(sentence => {
+    let score = 0;
+    keywords.forEach(word => { if(sentence.toLowerCase().includes(word)) score+=5; });
+    if(/\d{4}/.test(sentence)) score+=2;
+    return {sentence, score};
+  }).sort((a,b)=>b.score-a.score);
+}
 
   // ==============================
   // 📄 PARSE PDF
@@ -192,20 +241,6 @@
       fullText+=content.items.map(it=>it.str).join(" ")+" ";
     }
     return fullText;
-  }
-
-  // ==============================
-  // 🔥 EXTRACT INTERESTING SENTENCES
-  // ==============================
-  const keywords=["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence"];
-
-  function extractInterestingSentences(text,pkg){
-    const sentences=text.split(". ");
-    sentences.forEach(sentence=>{
-      let score=0;
-      keywords.forEach(word=>{ if(sentence.toLowerCase().includes(word)) score+=5; });
-      if(score>0) renderPost(sentence.trim(), pkg.dateIssued, pkg.collectionCode, pkg.packageId, score);
-    });
   }
 
   // ==============================
