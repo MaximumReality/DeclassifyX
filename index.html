@@ -78,22 +78,21 @@ async function fetchDocs() {
   isLoading = true;
   
   const feed = document.getElementById("feed");
-  // If the user didn't type a keyword, we search for the specific agencies
   const userQuery = document.getElementById("searchQuery").value.trim();
-  const agencySearch = '("FBI" OR "CIA" OR "NSA" OR "DOD" OR "Department of Energy")';
-  const finalQuery = userQuery ? `(${userQuery}) AND ${agencySearch}` : agencySearch;
+  
+  // If the box is empty, we search for a juicy default like "UFO" or "Clandestine"
+  const searchTerm = userQuery || "Top Secret";
+  
+  feed.innerHTML = "<div class='post'>SCANNING SATELLITE UPLINK...</div>";
 
-  feed.innerHTML = "<div class='post'>INTERCEPTING AGENCY REPORTS...</div>";
-
+  // This is the EXACT format GovInfo expects
   const searchParams = {
-    "query": finalQuery,
-    "pageSize": 15,
-    "offsetPoint": 0,
-    "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }]
+    "query": searchTerm,
+    "pageSize": 20,
+    "offsetPoint": 0
   };
 
   try {
-    // Using the proxy handshake (Make sure to click the 'Unlock' button in a separate tab!)
     const res = await fetch(`https://cors-anywhere.herokuapp.com/https://api.govinfo.gov/search?api_key=${API_KEY}`, {
       method: "POST",
       headers: {
@@ -106,34 +105,34 @@ async function fetchDocs() {
     const data = await res.json();
 
     if (!data.results || data.results.length === 0) {
-      feed.innerHTML = "<div class='post'>NO DECLASSIFIED INTEL FOUND. TRY BROADER TERMS.</div>";
+      // If no results, try one more time with a 'Global' search
+      feed.innerHTML = "<div class='post'>ACCESS DENIED. TRY KEYWORD: 'Nuclear'</div>";
     } else {
       feed.innerHTML = "";
       data.results.forEach(pkg => {
-        // Find the 'Agency' tag in the snippet
-        let agencyTag = "U.S. GOVT";
-        if (pkg.title.includes("CIA")) agencyTag = "CIA";
-        if (pkg.title.includes("FBI")) agencyTag = "FBI";
-        if (pkg.title.includes("NSA")) agencyTag = "NSA";
+        // We filter for your agencies manually in the results to be sure
+        const title = pkg.title.toUpperCase();
+        const agencies = ["CIA", "FBI", "NSA", "DOD", "DOE"];
+        const foundAgency = agencies.find(a => title.includes(a)) || "INTEL";
 
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px; border-bottom:1px solid #0ff; display:inline-block;">
-            [SOURCE: ${agencyTag} // ${pkg.collectionCode}]
+          <div style="color:#0ff; font-size:10px; border-bottom:1px solid #0ff; display:inline-block; margin-bottom:5px;">
+            [SECTOR: ${foundAgency}]
           </div>
-          <div style="font-weight:bold; margin-top:10px; color:#f0f;">${pkg.title}</div>
-          <p style="color:#0ff; font-size:14px; line-height:1.4;">${pkg.snippet || "Click below to decrypt full text..."}</p>
+          <div style="font-weight:bold; color:#f0f; margin-bottom:5px;">${pkg.title}</div>
+          <p style="font-size:14px; color:#0ff; opacity:0.9;">${pkg.snippet || "Click below to view full declassified brief..."}</p>
           <div class="meta">
-            📅 ISSUED: ${pkg.dateIssued} | 📂 ID: ${pkg.packageId}
-            <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none;">[ACCESS DOSSIER]</a>
+            DATE: ${pkg.dateIssued} | ID: ${pkg.packageId}
+            <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #fff; padding:2px 5px; display:inline-block; margin-top:5px;">[OPEN FILE]</a>
           </div>
         `;
         feed.appendChild(div);
       });
     }
   } catch (err) {
-    feed.innerHTML = `<div class='post'>SECURE LINK FAILED. <br> 1. Open <a href='https://cors-anywhere.herokuapp.com/corsdemo' target='_blank' style='color:#0ff'>Proxy Link</a> <br> 2. Click 'Request Access' <br> 3. Refresh this page.</div>`;
+    feed.innerHTML = `<div class='post' style='color:red;'>SYSTEM FAILURE: Check Proxy Status.</div>`;
   }
   isLoading = false;
 }
