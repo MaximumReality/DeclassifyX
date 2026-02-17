@@ -73,79 +73,83 @@ document.getElementById("searchButton").addEventListener("click", () => {
 });
 
 // Fetch documents
+// --- NEW: Add a Random Intelligence Keyword ---
+const randomIntel = () => {
+  const terms = ["unidentified aerial", "clandestine", "signal intelligence", "covert", "plutonium", "black operations"];
+  document.getElementById("searchQuery").value = terms[Math.floor(Math.random() * terms.length)];
+  fetchDocs();
+};
+
 async function fetchDocs() {
   if (isLoading) return;
   isLoading = true;
   
   const feed = document.getElementById("feed");
-  const userQuery = document.getElementById("searchQuery").value.trim();
-  
-  // If the box is empty, we search for a juicy default like "UFO" or "Clandestine"
-  const searchTerm = userQuery || "Top Secret";
-  
-  feed.innerHTML = "<div class='post'>SCANNING SATELLITE UPLINK...</div>";
+  const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
+  const agency = document.getElementById("agencyFilter").value;
 
-  // This is the EXACT format GovInfo expects
-  const searchParams = {
-    "query": searchTerm,
-    "pageSize": 20,
+  feed.innerHTML = "<div class='post'>DECRYPTING SATELLITE FEED...</div>";
+
+  // 1. Build the Search Body
+  const searchBody = {
+    "query": agency ? `${userQuery} AND collection:${agency}` : userQuery,
+    "pageSize": 10,
     "offsetPoint": 0
   };
 
+  // 2. iPhone-Friendly Proxy (AllOrigins)
+  // We use AllOrigins to fetch the data as a string, then parse it.
+  const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
   try {
-    const res = await fetch(`https://cors-anywhere.herokuapp.com/https://api.govinfo.gov/search?api_key=${API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: JSON.stringify(searchParams)
+    const res = await fetch(proxyUrl, {
+      method: 'POST', // AllOrigins will forward our POST request
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(searchBody)
     });
 
-    const data = await res.json();
+    // If POST through AllOrigins is tricky, we use their GET wrapper
+    const wrappedData = await res.json();
+    const data = JSON.parse(wrappedData.contents); // AllOrigins puts the result in 'contents'
 
     if (!data.results || data.results.length === 0) {
-      // If no results, try one more time with a 'Global' search
-      feed.innerHTML = "<div class='post'>ACCESS DENIED. TRY KEYWORD: 'Nuclear'</div>";
+      feed.innerHTML = "<div class='post'>NO DATA FOUND. TRY KEYWORD: 'UFO'</div>";
     } else {
       feed.innerHTML = "";
       data.results.forEach(pkg => {
-        // We filter for your agencies manually in the results to be sure
-        const title = pkg.title.toUpperCase();
-        const agencies = ["CIA", "FBI", "NSA", "DOD", "DOE"];
-        const foundAgency = agencies.find(a => title.includes(a)) || "INTEL";
+        // Calculate 🔥 Score
+        let score = 0;
+        const text = (pkg.title + pkg.snippet).toLowerCase();
+        keywords.forEach(k => { if(text.includes(k)) score += 1; });
+        const fire = "🔥".repeat(Math.min(5, score));
 
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px; border-bottom:1px solid #0ff; display:inline-block; margin-bottom:5px;">
-            [SECTOR: ${foundAgency}]
-          </div>
-          <div style="font-weight:bold; color:#f0f; margin-bottom:5px;">${pkg.title}</div>
-          <p style="font-size:14px; color:#0ff; opacity:0.9;">${pkg.snippet || "Click below to view full declassified brief..."}</p>
+          <div style="color:#0ff; font-size:10px;">[REVELATION FOUND] ${fire}</div>
+          <div style="font-weight:bold; color:#f0f; margin: 5px 0;">${pkg.title}</div>
+          <p style="font-size:14px;">${pkg.snippet || "Classified summary..."}</p>
           <div class="meta">
-            DATE: ${pkg.dateIssued} | ID: ${pkg.packageId}
-            <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #fff; padding:2px 5px; display:inline-block; margin-top:5px;">[OPEN FILE]</a>
+            📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;">[VIEW DOSSIER]</a>
           </div>
         `;
         feed.appendChild(div);
       });
     }
   } catch (err) {
-    feed.innerHTML = `<div class='post' style='color:red;'>SYSTEM FAILURE: Check Proxy Status.</div>`;
+    console.error(err);
+    feed.innerHTML = `<div class='post' style='color:red;'>CONNECTION LOST. Ensure your API Key is valid.</div>`;
   }
   isLoading = false;
 }
 
+// Add the Random button to your HTML controls manually or via JS:
+const btn = document.createElement("button");
+btn.innerHTML = "🎲 Random Intel";
+btn.onclick = randomIntel;
+document.querySelector(".controls").appendChild(btn);
 
-
-
-// Infinite scroll
-window.addEventListener("scroll", () => {
-  if((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300){
-    if(nextPageToken && !isLoading) fetchDocs(true);
-  }
-});
 </script>
 
 </body>
