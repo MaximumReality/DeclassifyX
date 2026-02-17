@@ -72,64 +72,81 @@ document.getElementById("searchButton").addEventListener("click", () => {
 });
 
 // Fetch documents
-async function fetchDocs(loadMore=false){
-  if(isLoading) return;
+async function fetchDocs(loadMore = false) {
+  if (isLoading) return;
   isLoading = true;
 
-  const query = document.getElementById("searchQuery").value.trim() || "nuclear";
+  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
   const year = document.getElementById("yearFilter").value.trim();
   const agency = document.getElementById("agencyFilter").value;
 
-  const searchBody = {
-    query: query,
-    pageSize: 10,
-    pageToken: nextPageToken || undefined,
-    filters: {}
-  };
-  if(year) searchBody.filters.dateIssued = `${year}-01-01:${year}-12-31`;
-  if(agency) searchBody.filters.collection = agency;
+  // 1. Build the query string using GovInfo's specific syntax
+  let fullQuery = query;
+  if (agency) fullQuery += ` && collection:${agency}`;
+  if (year) fullQuery += ` && publishdate:range(${year}-01-01, ${year}-12-31)`;
 
-  try{
-    const res = await fetch(`${BASE_URL}/search?api_key=${API_KEY}`,{
-      method:"POST",
-      headers: {"Content-Type":"application/json"},
+  // 2. The JSON body they are looking for
+  const searchBody = {
+    "query": fullQuery,
+    "pageSize": 10,
+    "offsetPoint": offset // GovInfo uses offsetPoint for pagination
+  };
+
+  try {
+    const res = await fetch(`${BASE_URL}/search?api_key=${API_KEY}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(searchBody)
     });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to fetch");
+    }
+
     const data = await res.json();
-    if(!data.results || data.results.length === 0){
-      console.log("No results found");
-      isLoading=false;
+    
+    if (offset === 0) document.getElementById("feed").innerHTML = "";
+
+    if (!data.results || data.results.length === 0) {
+      document.getElementById("feed").innerHTML += "<div class='post'>NO DATA FOUND.</div>";
+      isLoading = false;
       return;
     }
 
-    nextPageToken = data.nextPageToken || null;
-
-    for(let pkg of data.results){
-      const sumRes = await fetch(`${BASE_URL}/packages/${pkg.packageId}/summary?api_key=${API_KEY}`);
-      const summary = await sumRes.json();
-      const text = (summary.summary || summary.title || "No content").toLowerCase();
-
-      // Compute 🔥 score
+    data.results.forEach(pkg => {
+      // Mind-blowing logic
       let score = 0;
-      keywords.forEach(k => { if(text.includes(k)) score += 5; });
-      if(/\d{4}/.test(text)) score += 2;
-      const fireIcons = "🔥".repeat(Math.min(5, Math.ceil(score/5)));
+      const textToScan = (pkg.title + " " + (pkg.snippet || "")).toLowerCase();
+      keywords.forEach(k => { if(textToScan.includes(k)) score += 5; });
+      const fireIcons = "🔥".repeat(Math.min(5, Math.ceil(score / 5)));
 
-      // Render post
       const div = document.createElement("div");
       div.className = "post";
       div.innerHTML = `
-        <div>${summary.title || "Untitled"}</div>
-        <div>${summary.summary || "No summary available"}</div>
-        <div class="meta">${fireIcons} 📁 ${summary.collectionCode || "N/A"} | 📅 ${summary.dateIssued || "Unknown"}
-        <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#f0f">View Source</a></div>
+        <div style="color:#0ff; border-bottom:1px solid #333; margin-bottom:5px;">>>> SOURCE: ${pkg.collectionCode}</div>
+        <div style="font-weight:bold;">${pkg.title}</div>
+        <div class="tweet-content">${pkg.snippet || "No summary available..."}</div>
+        <div class="meta">
+            SENSITIVITY: ${fireIcons || "📁"} | 📅 ${pkg.dateIssued || "N/A"} 
+            <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#f0f">[DECRYPT FILE]</a>
+        </div>
       `;
       document.getElementById("feed").appendChild(div);
-    }
+    });
 
-  } catch(err){ console.log("Error fetching documents:", err); }
+    offset += 10; 
 
-  isLoading=false;
+  } catch (err) {
+    console.error("Transmission Error:", err);
+    document.getElementById("feed").innerHTML += `<div class='post' style='color:#ff4444'>SYSTEM ERROR: ${err.message}</div>`;
+  }
+
+  isLoading = false;
+}
+
 }
 
 // Infinite scroll
