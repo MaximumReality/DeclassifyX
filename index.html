@@ -51,14 +51,7 @@ const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
 const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence","ufo","uap"];
 let isLoading = false;
 
-// Azul Animation
-setInterval(() => {
-  const azul = document.getElementById("azul");
-  if(azul) {
-    azul.src = azul.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
-  }
-}, 800);
-
+// Quick-Tap Search Function
 function quickSearch(term) {
   document.getElementById("searchQuery").value = term;
   fetchDocs();
@@ -75,23 +68,35 @@ async function fetchDocs() {
   const statusText = document.getElementById("status-text");
   const query = document.getElementById("searchQuery").value.trim() || "declassified";
 
-  feed.innerHTML = "<div class='post'>📡 SCANNING FREQUENCIES...</div>";
+  feed.innerHTML = "<div class='post'>📡 ATTEMPTING SECURE BYPASS...</div>";
   statusText.innerText = "UPLINKING...";
-  statusLight.style.background = "#ff0"; // Yellow while searching
+  statusLight.style.background = "#ff0"; 
 
-  // Using a simplified GET approach with a transparent proxy for stability
-  const targetUrl = `https://api.govinfo.gov/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${API_KEY}`;
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+  // The Exact JSON format the GovInfo API requires
+  const payload = {
+    "query": query,
+    "pageSize": 10,
+    "offsetMark": "*"
+  };
+
+  // Using a robust POST-capable free proxy
+  const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
+  const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
 
   try {
-    const res = await fetch(proxyUrl);
-    const wrapped = await res.json();
-    const data = JSON.parse(wrapped.contents);
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
 
     if (data.results && data.results.length > 0) {
-      statusLight.className = "online";
       statusLight.style.background = "#0f0";
-      statusText.innerText = "SECURE LINK ACTIVE";
+      statusText.innerText = "LINK ACTIVE";
       feed.innerHTML = "";
 
       data.results.forEach(pkg => {
@@ -102,23 +107,25 @@ async function fetchDocs() {
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px;">[INTEL] ${"🔥".repeat(Math.min(3, score))}</div>
-          <div style="font-weight:bold; color:#f0f;">${pkg.title}</div>
-          <p style="font-size:14px;">${pkg.snippet || "Dossier encrypted."}</p>
-          <div class="meta">📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;">[OPEN]</a></div>
+          <div style="color:#0ff; font-size:10px;">[DATA SOURCE: ${pkg.collectionCode}]</div>
+          <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
+          <p style="font-size:14px; line-height:1.4;">${pkg.snippet || "Access dossier for full text..."}</p>
+          <div class="meta">📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; border:1px solid #0ff; padding:2px; text-decoration:none;">[OPEN]</a></div>
         `;
         feed.appendChild(div);
       });
     } else {
-      throw new Error("No results");
+      feed.innerHTML = "<div class='post'>🛑 NO RESULTS IN THIS SECTOR. TRY 'CIA' OR 'NUCLEAR'.</div>";
     }
   } catch (err) {
     statusLight.style.background = "#f00";
-    statusText.innerText = "LINK FAILED";
-    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 NO SIGNAL. Try a different keyword or tap a button above.</div>`;
+    statusText.innerText = "OFFLINE";
+    // This displays the error directly in the feed so you can tell me what it says
+    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 SIGNAL LOST.<br>Reason: ${err.message}<br><br>Tip: Ensure your iPhone has a strong connection and try a simple keyword.</div>`;
   }
   isLoading = false;
 }
+
 </script>
 </body>
 </html>
