@@ -109,19 +109,16 @@ async function fetchDocs() {
   const statusText = document.getElementById("status-text");
   const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
   
-  // Clean up Year input
   const rawYear = document.getElementById("yearFilter").value.trim();
   const yearMatch = rawYear.match(/\d{4}/);
   const year = yearMatch ? yearMatch[0] : "";
 
-  // 2. RADAR PULSE: Visual feedback for iPhone users
   feed.innerHTML = "<div class='post' style='animation: pulse 1.5s infinite;'>📡 SCANNINING ENCRYPTED CHANNELS...</div>";
   statusText.innerText = "UPLINKING...";
 
   let apiQuery = userQuery;
   if (year) apiQuery += ` AND publishdate:${year}`;
 
-  // 3. OFFSETMARK FIX: GovInfo's specific requirement
   const searchPayload = {
     "query": apiQuery,
     "pageSize": 10,
@@ -141,34 +138,31 @@ async function fetchDocs() {
       body: JSON.stringify(searchPayload)
     });
 
-    if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || `Status ${res.status}`);
+    // Check if the response is actually JSON
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("PROXY_LOCKED");
     }
 
     const data = await res.json();
 
     statusLight.classList.add("online");
     statusText.innerText = "SECURE LINK ACTIVE";
+    feed.innerHTML = "";
 
     if (!data.results || data.results.length === 0) {
       feed.innerHTML = "<div class='post'>🛑 NO INTEL FOUND. THE SYSTEM IS EMPTY.</div>";
     } else {
-      feed.innerHTML = "";
       data.results.forEach(pkg => {
-        // Calculate Score
         let score = 0;
-        const text = (pkg.title + pkg.snippet).toLowerCase();
+        const text = (pkg.title + (pkg.snippet || "")).toLowerCase();
         keywords.forEach(k => { if(text.includes(k)) score++; });
         const fireIcons = "🔥".repeat(Math.min(5, score));
 
-        // Construct Post
         const div = document.createElement("div");
         div.className = "post";
-        
         const tweetText = encodeURIComponent(`🚨 DECLASSIFIED: ${pkg.title} #DeclassifyX`);
-        const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
-
+        
         div.innerHTML = `
           <div style="color:#0ff; font-size:10px;">[REVELATION] ${fireIcons}</div>
           <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
@@ -177,7 +171,7 @@ async function fetchDocs() {
             📅 ${pkg.dateIssued} 
             <br><br>
             <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:4px;">[FILE]</a>
-            <a href="${tweetUrl}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:4px; margin-left:10px;">[SHARE]</a>
+            <a href="https://twitter.com/intent/tweet?text=${tweetText}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:4px; margin-left:10px;">[SHARE]</a>
           </div>
         `;
         feed.appendChild(div);
@@ -186,11 +180,16 @@ async function fetchDocs() {
   } catch (err) {
     statusLight.classList.remove("online");
     statusText.innerText = "OFFLINE";
-    alert("SYSTEM ERROR: " + err.message);
-    feed.innerHTML = `<div class='post' style='color:red;'>🔴 ERROR: ${err.message}</div>`;
+    
+    if (err.message === "PROXY_LOCKED") {
+        feed.innerHTML = `<div class='post' style='color:#ff0;'>⚠️ PROXY ACCESS EXPIRED.<br><br>Please click the link below to re-verify your iPhone, then refresh this page.<br><br><a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" style="color:#0ff; font-weight:bold;">[UNLOCK PROXY HERE]</a></div>`;
+    } else {
+        feed.innerHTML = `<div class='post' style='color:red;'>🔴 ERROR: ${err.message}</div>`;
+    }
   }
   isLoading = false;
 }
+
 
 
 </script>
