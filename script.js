@@ -78,10 +78,9 @@ async function loadMore() {
   if (!nextOffsetMark) return;
 
   isLoading = true;
-  setAzulSpeed(200);
+  setAzulSpeed(200); // fast pulse while processing
 
   const url = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
-
   const requestBody = {
     query: currentQuery,
     pageSize: PAGE_SIZE,
@@ -92,9 +91,7 @@ async function loadMore() {
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody)
     });
 
@@ -109,9 +106,18 @@ async function loadMore() {
 
     nextOffsetMark = data.nextPageOffsetMark || null;
 
-    let allSentences = [];
+    const feed = document.getElementById("feed");
 
+    let docIndex = 0;
     for (const pkg of data.packages) {
+      docIndex++;
+      // Show loading message for this PDF
+      const loadingDiv = document.createElement("div");
+      loadingDiv.className = "post";
+      loadingDiv.id = `loading-${pkg.packageId}`;
+      loadingDiv.innerHTML = `<em>Processing PDF ${docIndex} of ${data.packages.length}...</em>`;
+      feed.appendChild(loadingDiv);
+
       const pdfUrl = await getPdfUrl(pkg.packageId);
       let textContent = "";
 
@@ -126,36 +132,35 @@ async function loadMore() {
         pkg.collectionCode
       );
 
-      allSentences = allSentences.concat(scored);
-    }
+      scored.sort((a, b) => b.score - a.score);
 
-    allSentences.sort((a, b) => b.score - a.score);
+      let count = 0;
+      for (const sentence of scored) {
+        if (!seenSentences.has(sentence.text)) {
+          seenSentences.add(sentence.text);
 
-    let count = 0;
-
-    for (const sentence of allSentences) {
-      if (!seenSentences.has(sentence.text)) {
-        seenSentences.add(sentence.text);
-
-        renderPost(
-          sentence.text,
-          sentence.date,
-          sentence.collection,
-          sentence.packageId,
-          sentence.score
-        );
-
-        count++;
+          renderPost(
+            sentence.text,
+            sentence.date,
+            sentence.collection,
+            sentence.packageId,
+            sentence.score
+          );
+          count++;
+        }
+        if (count >= POSTS_PER_BATCH) break;
       }
 
-      if (count >= POSTS_PER_BATCH) break;
+      // Remove loading message
+      const loadingEl = document.getElementById(`loading-${pkg.packageId}`);
+      if (loadingEl) loadingEl.remove();
     }
 
   } catch (error) {
     console.error("Load error:", error);
   }
 
-  setAzulSpeed(800);
+  setAzulSpeed(800); // calm pulse
   isLoading = false;
 }
 
@@ -215,11 +220,9 @@ function scoreSentences(text, packageId, date, collection) {
 
   return sentences.map(sentence => {
     let score = 0;
-
     keywords.forEach(word => {
       if (sentence.toLowerCase().includes(word)) score += 5;
     });
-
     if (/\d{4}/.test(sentence)) score += 2;
     if (sentence.length > 120) score += 1;
 
