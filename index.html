@@ -12,11 +12,6 @@
   <!-- Azul Hacker Cat -->
   <img id="azul" src="azul-cat.png" alt="Azul Hacker Cat">
 
-  <!-- Optional synthwave background music -->
-  <audio autoplay loop>
-    <source src="synthwave-loop.mp3" type="audio/mpeg">
-  </audio>
-
   <h1>📂 DeclassifyX</h1>
 
   <!-- Search Controls -->
@@ -29,16 +24,36 @@
       <option value="CIA">CIA</option>
       <option value="DOD">Department of Defense</option>
       <option value="NSA">NSA</option>
+      <option value="FBI">FBI</option>
       <option value="DOE">Department of Energy</option>
     </select>
 
-    <button onclick="fetchDocs()">Search</button>
+    <button id="searchButton">Search</button>
   </div>
 
   <!-- Feed Container -->
   <div id="feed"></div>
 
+  <!-- Background music -->
+  <audio id="bgMusic" loop>
+    <source src="synthwave-loop.mp3" type="audio/mpeg">
+  </audio>
+
   <!-- Main script -->
   <script src="script.js"></script>
+  <script>
+    // Mobile-friendly: start music on first Search tap
+    const searchBtn = document.getElementById("searchButton");
+    const music = document.getElementById("bgMusic");
+    let musicStarted = false;
+
+    searchBtn.addEventListener("click", () => {
+      if (!musicStarted) {
+        music.play().catch(e => console.log("Music playback blocked:", e));
+        musicStarted = true;
+      }
+      fetchDocs();
+    });
+  </script>
 </body>
 </html>
