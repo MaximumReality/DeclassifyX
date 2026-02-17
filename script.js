@@ -111,26 +111,40 @@ async function fetchDocs(loadMore = false) {
 // ==============================
 // 📦 PROCESS PACKAGES (3 at a time)
 // ==============================
-async function processPackagesProgressively(packages) {
+async function processPackagesProgressively(results) {
   const feed = document.getElementById("feed");
 
   let status = document.createElement("div");
-  status.id = "processingStatus";
-  status.innerText = `Processing 0 of ${packages.length} PDFs...`;
+  status.innerText = `Processing ${results.length} results...`;
   feed.appendChild(status);
 
-  for (let i = 0; i < packages.length; i++) {
-    status.innerText = `Processing ${i + 1} of ${packages.length} PDFs...`;
+  for (let i = 0; i < results.length; i++) {
+    const pkg = results[i];
 
-    const pkg = packages[i];
+    // POST BASIC RESULT IMMEDIATELY (so you see something)
+    renderPost(
+      pkg.title || "Untitled Document",
+      pkg.dateIssued,
+      pkg.collectionCode,
+      pkg.packageId,
+      1
+    );
 
-    if (pkg.download && pkg.download.pdfLink) {
-      try {
-        const text = await parsePdf(pkg.download.pdfLink);
-        extractInterestingSentences(text, pkg);
-      } catch (err) {
-        console.log("PDF parse error:", err);
+    // OPTIONAL: try fetching PDF summary
+    try {
+      const summaryRes = await fetch(
+        `${BASE_URL}/packages/${pkg.packageId}/summary?api_key=${API_KEY}`
+      );
+
+      const summaryData = await summaryRes.json();
+
+      if (summaryData.download && summaryData.download.pdfLink) {
+        const text = await parsePdf(summaryData.download.pdfLink);
+        extractInterestingSentences(text, summaryData);
       }
+
+    } catch (err) {
+      console.log("Summary fetch error:", err);
     }
 
     await new Promise(r => setTimeout(r, 300));
@@ -138,7 +152,6 @@ async function processPackagesProgressively(packages) {
 
   status.remove();
 }
-
 // ==============================
 // 📄 PDF PARSER (first 10 pages)
 // ==============================
