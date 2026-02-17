@@ -82,7 +82,10 @@ const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
 const BASE_URL = "https://api.govinfo.gov";
 let isLoading = false;
 
-// Music & Cat Logic (Keeping your vibes intact)
+// 1. FIXED: Added the missing keywords list
+const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence","ufo","uap","redacted"];
+
+// Music & Cat Logic
 const music = document.getElementById("bgMusic");
 let musicStarted = false;
 let azul = document.getElementById("azul");
@@ -105,17 +108,20 @@ async function fetchDocs() {
   const statusLight = document.getElementById("status-light");
   const statusText = document.getElementById("status-text");
   const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
+  
+  // Clean up Year input
   const rawYear = document.getElementById("yearFilter").value.trim();
   const yearMatch = rawYear.match(/\d{4}/);
   const year = yearMatch ? yearMatch[0] : "";
 
-  feed.innerHTML = "<div class='post'>📡 ESTABLISHING POST-LEVEL UPLINK...</div>";
-  statusText.innerText = "CONNECTING...";
+  // 2. RADAR PULSE: Visual feedback for iPhone users
+  feed.innerHTML = "<div class='post' style='animation: pulse 1.5s infinite;'>📡 SCANNINING ENCRYPTED CHANNELS...</div>";
+  statusText.innerText = "UPLINKING...";
 
   let apiQuery = userQuery;
   if (year) apiQuery += ` AND publishdate:${year}`;
 
-  // THE FIX: Adding 'offsetMark' instead of 'offsetPoint'
+  // 3. OFFSETMARK FIX: GovInfo's specific requirement
   const searchPayload = {
     "query": apiQuery,
     "pageSize": 10,
@@ -150,28 +156,28 @@ async function fetchDocs() {
     } else {
       feed.innerHTML = "";
       data.results.forEach(pkg => {
-        // Find Mind-Blowing Score
+        // Calculate Score
         let score = 0;
         const text = (pkg.title + pkg.snippet).toLowerCase();
         keywords.forEach(k => { if(text.includes(k)) score++; });
         const fireIcons = "🔥".repeat(Math.min(5, score));
 
+        // Construct Post
         const div = document.createElement("div");
         div.className = "post";
         
-        // Twitter Share Link Construction
-        const tweetText = encodeURIComponent(`🚨 DECLASSIFIED REVELATION: ${pkg.title} #DeclassifyX`);
+        const tweetText = encodeURIComponent(`🚨 DECLASSIFIED: ${pkg.title} #DeclassifyX`);
         const tweetUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
 
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px;">[DATA LEAKED] ${fireIcons}</div>
+          <div style="color:#0ff; font-size:10px;">[REVELATION] ${fireIcons}</div>
           <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
-          <p style="font-size:14px; color:#0ff; opacity:0.8;">${pkg.snippet || "Dossier encrypted. View source for details."}</p>
+          <p style="font-size:14px; color:#0ff; opacity:0.8;">${pkg.snippet || "Decrypting content..."}</p>
           <div class="meta">
             📅 ${pkg.dateIssued} 
-            <br>
-            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:2px; margin-right:10px;">[OPEN SOURCE]</a>
-            <a href="${tweetUrl}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:2px;">[SHARE TO X]</a>
+            <br><br>
+            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:4px;">[FILE]</a>
+            <a href="${tweetUrl}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:4px; margin-left:10px;">[SHARE]</a>
           </div>
         `;
         feed.appendChild(div);
@@ -179,12 +185,13 @@ async function fetchDocs() {
     }
   } catch (err) {
     statusLight.classList.remove("online");
-    statusText.innerText = "CONNECTION TERMINATED";
+    statusText.innerText = "OFFLINE";
     alert("SYSTEM ERROR: " + err.message);
-    feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> ${err.message}</div>`;
+    feed.innerHTML = `<div class='post' style='color:red;'>🔴 ERROR: ${err.message}</div>`;
   }
   isLoading = false;
 }
+
 
 </script>
 
