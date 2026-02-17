@@ -27,12 +27,13 @@
   <input type="text" id="searchQuery" placeholder="Keyword (CIA, nuclear, etc)">
   <input type="text" id="yearFilter" placeholder="Year (1975)">
   <select id="agencyFilter">
-    <option value="">All Agencies</option>
-    <option value="BILLS">BILLS</option>
-    <option value="CREC">CREC</option>
-    <option value="USCOURTS">USCOURTS</option>
-    <option value="FR">FR</option>
-  </select>
+  <option value="">All Intel Sources</option>
+  <option value="GAOREPORTS">GAO (Gov Accountability Office)</option>
+  <option value="CHRG">Congressional Hearings (Juicy Testimony)</option>
+  <option value="FR">Federal Register (Agency Rules)</option>
+  <option value="CPRT">Committee Prints (Deep Research)</option>
+</select>
+
   <button id="searchButton">Search</button>
 </div>
 
@@ -77,25 +78,23 @@ async function fetchDocs() {
   isLoading = true;
   
   const feed = document.getElementById("feed");
-  const query = document.getElementById("searchQuery").value.trim() || "UFO";
-  
-  feed.innerHTML = "<div class='post'>ACCESSING SECURE SERVERS...</div>";
+  // If the user didn't type a keyword, we search for the specific agencies
+  const userQuery = document.getElementById("searchQuery").value.trim();
+  const agencySearch = '("FBI" OR "CIA" OR "NSA" OR "DOD" OR "Department of Energy")';
+  const finalQuery = userQuery ? `(${userQuery}) AND ${agencySearch}` : agencySearch;
 
-  // Using 'allorigins' - a proxy that doesn't require a manual 'unlock' button
-  const proxy = "https://api.allorigins.win/get?url=";
-  const targetUrl = encodeURIComponent(`https://api.govinfo.gov/search?api_key=${API_KEY}`);
+  feed.innerHTML = "<div class='post'>INTERCEPTING AGENCY REPORTS...</div>";
 
-  // The Search Body for GovInfo
   const searchParams = {
-    query: query,
-    pageSize: 10,
-    offsetPoint: 0
+    "query": finalQuery,
+    "pageSize": 15,
+    "offsetPoint": 0,
+    "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }]
   };
 
   try {
-    // Note: allorigins requires a GET, so we pass the search via a workaround
-    // Or we stick to cors-anywhere but ensure it's formatted perfectly:
-    const res = await fetch("https://cors-anywhere.herokuapp.com/https://api.govinfo.gov/search?api_key=" + API_KEY, {
+    // Using the proxy handshake (Make sure to click the 'Unlock' button in a separate tab!)
+    const res = await fetch(`https://cors-anywhere.herokuapp.com/https://api.govinfo.gov/search?api_key=${API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -107,26 +106,38 @@ async function fetchDocs() {
     const data = await res.json();
 
     if (!data.results || data.results.length === 0) {
-      feed.innerHTML = "<div class='post'>NO SENSITIVE DATA FOUND. TRY A DIFFERENT KEYWORD.</div>";
+      feed.innerHTML = "<div class='post'>NO DECLASSIFIED INTEL FOUND. TRY BROADER TERMS.</div>";
     } else {
-      feed.innerHTML = ""; // Clear the loading message
+      feed.innerHTML = "";
       data.results.forEach(pkg => {
+        // Find the 'Agency' tag in the snippet
+        let agencyTag = "U.S. GOVT";
+        if (pkg.title.includes("CIA")) agencyTag = "CIA";
+        if (pkg.title.includes("FBI")) agencyTag = "FBI";
+        if (pkg.title.includes("NSA")) agencyTag = "NSA";
+
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:12px;">[REDACTED]</div>
-          <div style="font-weight:bold;">${pkg.title}</div>
-          <p>${pkg.snippet || "No preview available..."}</p>
-          <div class="meta">📁 ${pkg.collectionCode} | 📅 ${pkg.dateIssued}</div>
+          <div style="color:#0ff; font-size:10px; border-bottom:1px solid #0ff; display:inline-block;">
+            [SOURCE: ${agencyTag} // ${pkg.collectionCode}]
+          </div>
+          <div style="font-weight:bold; margin-top:10px; color:#f0f;">${pkg.title}</div>
+          <p style="color:#0ff; font-size:14px; line-height:1.4;">${pkg.snippet || "Click below to decrypt full text..."}</p>
+          <div class="meta">
+            📅 ISSUED: ${pkg.dateIssued} | 📂 ID: ${pkg.packageId}
+            <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none;">[ACCESS DOSSIER]</a>
+          </div>
         `;
         feed.appendChild(div);
       });
     }
   } catch (err) {
-    feed.innerHTML = `<div class='post'>CONNECTION ERROR: <br> Ensure you have unlocked the proxy at <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" style="color:#0ff">this link</a>.</div>`;
+    feed.innerHTML = `<div class='post'>SECURE LINK FAILED. <br> 1. Open <a href='https://cors-anywhere.herokuapp.com/corsdemo' target='_blank' style='color:#0ff'>Proxy Link</a> <br> 2. Click 'Request Access' <br> 3. Refresh this page.</div>`;
   }
   isLoading = false;
 }
+
 
 
 
