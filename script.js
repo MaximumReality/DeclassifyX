@@ -1,24 +1,16 @@
 // ==============================
-// 🔑 CONFIG
+// 🔐 GOVINFO CONFIG
 // ==============================
-const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
-const PAGE_SIZE = 5;
-const POSTS_PER_BATCH = 10;
+const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO"; 
+const BASE_URL = "https://api.govinfo.gov";
 
 // ==============================
-// 🧠 STATE
-// ==============================
-let nextOffsetMark = "*";
-let isLoading = false;
-let currentQuery = "declassified";
-let seenSentences = new Set();
-
-// ==============================
-// 🐱 AZUL PULSE SYSTEM
+// 🐱 AZUL DYNAMIC PULSE SYSTEM
 // ==============================
 let azulState = false;
 let azulSpeed = 800;
 let azulInterval;
+let maxShock = 0;
 
 function startAzulPulse() {
   const azul = document.getElementById("azul");
@@ -29,167 +21,134 @@ function startAzulPulse() {
   azulInterval = setInterval(() => {
     azulState = !azulState;
     azul.src = azulState ? "azul-cat2.png" : "azul-cat.png";
+
+    // Calm down slowly
+    if (azulSpeed < 800 && maxShock <= 1) {
+      azulSpeed += 20;
+      startAzulPulse();
+    }
   }, azulSpeed);
 }
 
-function setAzulSpeed(speed) {
-  azulSpeed = speed;
+function updateAzulPulseBasedOnShock(shockLevel) {
+  maxShock = Math.max(maxShock, shockLevel);
+
+  const speedMap = [800, 600, 400, 250, 150, 100];
+  azulSpeed = speedMap[shockLevel] || 800;
+
   startAzulPulse();
+
+  setTimeout(() => {
+    maxShock = Math.max(0, maxShock - 1);
+  }, 4000);
 }
 
-window.addEventListener("load", () => {
-  startAzulPulse();
-});
+startAzulPulse();
 
 // ==============================
-// 🔎 SEARCH START
+// 🔎 SEARCH STATE
 // ==============================
-async function fetchDocs() {
-  const query = document.getElementById("searchQuery").value || "declassified";
-  const year = document.getElementById("yearFilter").value;
+let nextPageToken = null;
+let isLoading = false;
+
+// ==============================
+// 🔍 FETCH DOCUMENTS (POST)
+// ==============================
+async function fetchDocs(loadMore = false) {
+  if (isLoading) return;
+  isLoading = true;
+
+  const query = document.getElementById("searchQuery").value.trim();
+  const year = document.getElementById("yearFilter").value.trim();
   const agency = document.getElementById("agencyFilter").value;
 
-  seenSentences.clear();
-  document.getElementById("feed").innerHTML = "";
-
-  nextOffsetMark = "*";
-
-  currentQuery = query;
-  if (year) currentQuery += ` ${year}`;
-  if (agency) currentQuery += ` ${agency}`;
-
-  await loadMore();
-}
-
-// ==============================
-// ♾ INFINITE SCROLL
-// ==============================
-window.addEventListener("scroll", () => {
-  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
-    loadMore();
+  if (!loadMore) {
+    document.getElementById("feed").innerHTML = "";
+    nextPageToken = null;
   }
-});
 
-// ==============================
-// 📥 LOAD MORE DOCUMENTS (POST)
-// ==============================
-async function loadMore() {
-  if (isLoading) return;
-  if (!nextOffsetMark) return;
-
-  isLoading = true;
-  setAzulSpeed(200); // fast pulse while processing
-
-  const url = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
-  const requestBody = {
-    query: currentQuery,
-    pageSize: PAGE_SIZE,
-    offsetMark: nextOffsetMark,
-    sortOrder: "DESC"
+  const searchQuery = {
+    query: query || "nuclear",
+    pageSize: 10,
+    pageToken: nextPageToken || undefined,
+    facets: [],
+    filters: {}
   };
 
+  if (year) {
+    searchQuery.filters.dateIssued = `${year}-01-01:${year}-12-31`;
+  }
+
+  if (agency) {
+    searchQuery.filters.collection = agency;
+  }
+
   try {
-    const response = await fetch(url, {
+    const response = await fetch(`${BASE_URL}/search?api_key=${API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(searchQuery)
     });
 
     const data = await response.json();
 
     if (!data.packages || data.packages.length === 0) {
-      nextOffsetMark = null;
       isLoading = false;
-      setAzulSpeed(800);
       return;
     }
 
-    nextOffsetMark = data.nextPageOffsetMark || null;
+    nextPageToken = data.nextPageToken || null;
 
-    const feed = document.getElementById("feed");
-
-    let docIndex = 0;
-    for (const pkg of data.packages) {
-      docIndex++;
-      // Show loading message for this PDF
-      const loadingDiv = document.createElement("div");
-      loadingDiv.className = "post";
-      loadingDiv.id = `loading-${pkg.packageId}`;
-      loadingDiv.innerHTML = `<em>Processing PDF ${docIndex} of ${data.packages.length}...</em>`;
-      feed.appendChild(loadingDiv);
-
-      const pdfUrl = await getPdfUrl(pkg.packageId);
-      let textContent = "";
-
-      if (pdfUrl) {
-        textContent = await parsePdf(pdfUrl);
-      }
-
-      const scored = scoreSentences(
-        textContent || pkg.summary || pkg.title,
-        pkg.packageId,
-        pkg.dateIssued,
-        pkg.collectionCode
-      );
-
-      scored.sort((a, b) => b.score - a.score);
-
-      let count = 0;
-      for (const sentence of scored) {
-        if (!seenSentences.has(sentence.text)) {
-          seenSentences.add(sentence.text);
-
-          renderPost(
-            sentence.text,
-            sentence.date,
-            sentence.collection,
-            sentence.packageId,
-            sentence.score
-          );
-          count++;
-        }
-        if (count >= POSTS_PER_BATCH) break;
-      }
-
-      // Remove loading message
-      const loadingEl = document.getElementById(`loading-${pkg.packageId}`);
-      if (loadingEl) loadingEl.remove();
-    }
+    await processPackagesProgressively(data.packages);
 
   } catch (error) {
-    console.error("Load error:", error);
+    console.error("Search error:", error);
   }
 
-  setAzulSpeed(800); // calm pulse
   isLoading = false;
 }
 
 // ==============================
-// 📄 GET PDF URL
+// 📦 PROCESS PACKAGES (3 at a time)
 // ==============================
-async function getPdfUrl(packageId) {
-  try {
-    const response = await fetch(
-      `https://api.govinfo.gov/packages/${packageId}/formats?api_key=${API_KEY}`
-    );
-    const data = await response.json();
-    const pdf = data.formats.find(f => f.format === "pdf");
-    return pdf?.url || null;
-  } catch {
-    return null;
+async function processPackagesProgressively(packages) {
+  const feed = document.getElementById("feed");
+
+  let status = document.createElement("div");
+  status.id = "processingStatus";
+  status.innerText = `Processing 0 of ${packages.length} PDFs...`;
+  feed.appendChild(status);
+
+  for (let i = 0; i < packages.length; i++) {
+    status.innerText = `Processing ${i + 1} of ${packages.length} PDFs...`;
+
+    const pkg = packages[i];
+
+    if (pkg.download && pkg.download.pdfLink) {
+      try {
+        const text = await parsePdf(pkg.download.pdfLink);
+        extractInterestingSentences(text, pkg);
+      } catch (err) {
+        console.log("PDF parse error:", err);
+      }
+    }
+
+    await new Promise(r => setTimeout(r, 300));
   }
+
+  status.remove();
 }
 
 // ==============================
-// 📚 PARSE PDF (first 10 pages)
+// 📄 PDF PARSER (first 10 pages)
 // ==============================
 async function parsePdf(url) {
-  const loadingTask = pdfjsLib.getDocument(url);
-  const pdf = await loadingTask.promise;
-
+  const pdf = await pdfjsLib.getDocument(url).promise;
   let fullText = "";
 
-  for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+  const maxPages = Math.min(pdf.numPages, 10);
+
+  for (let i = 1; i <= maxPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const strings = content.items.map(item => item.str);
@@ -200,39 +159,25 @@ async function parsePdf(url) {
 }
 
 // ==============================
-// 🔥 SCORE SENTENCES
+// 🔥 SENTENCE SCORING
 // ==============================
-function scoreSentences(text, packageId, date, collection) {
-  const keywords = [
-    "classified",
-    "covert",
-    "experiment",
-    "surveillance",
-    "nuclear",
-    "biological",
-    "intelligence",
-    "operation",
-    "anomaly",
-    "recovered"
-  ];
+const keywords = [
+  "classified", "secret", "nuclear", "covert", 
+  "surveillance", "weapon", "operation", "intelligence"
+];
 
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+function extractInterestingSentences(text, pkg) {
+  const sentences = text.split(". ");
 
-  return sentences.map(sentence => {
+  sentences.forEach(sentence => {
     let score = 0;
     keywords.forEach(word => {
       if (sentence.toLowerCase().includes(word)) score += 5;
     });
-    if (/\d{4}/.test(sentence)) score += 2;
-    if (sentence.length > 120) score += 1;
 
-    return {
-      text: sentence.trim().substring(0, 280),
-      score,
-      packageId,
-      date,
-      collection
-    };
+    if (score > 0) {
+      renderPost(sentence.trim(), pkg.dateIssued, pkg.collectionCode, pkg.packageId, score);
+    }
   });
 }
 
@@ -247,9 +192,8 @@ function renderPost(text, date, collection, packageId, score) {
   const shockLevel = Math.min(5, Math.ceil(score / 5));
   const fireIcons = "🔥".repeat(shockLevel);
 
-  if (shockLevel >= 5) {
-    setAzulSpeed(100);
-    setTimeout(() => setAzulSpeed(800), 2000);
+  if (shockLevel > 0) {
+    updateAzulPulseBasedOnShock(shockLevel);
   }
 
   const glitchOffset = () => (Math.random() * 4 - 2) + "px";
@@ -269,3 +213,14 @@ function renderPost(text, date, collection, packageId, score) {
 
   feed.appendChild(div);
 }
+
+// ==============================
+// ♾ INFINITE SCROLL
+// ==============================
+window.addEventListener("scroll", () => {
+  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+    if (nextPageToken && !isLoading) {
+      fetchDocs(true);
+    }
+  }
+});
