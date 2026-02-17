@@ -1,18 +1,29 @@
-const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO"; // replace with your GovInfo API key
+// ==============================
+// 🔑 CONFIG
+// ==============================
+const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
 const PAGE_SIZE = 5;
 const POSTS_PER_BATCH = 10;
 
+// ==============================
+// 🧠 STATE
+// ==============================
 let currentOffset = 0;
 let isLoading = false;
 let currentQuery = "declassified";
 let seenSentences = new Set();
-// ===== Azul Pulse System =====
+
+// ==============================
+// 🐱 AZUL PULSE SYSTEM
+// ==============================
 let azulState = false;
-let azulSpeed = 800; // default pulse speed (ms)
+let azulSpeed = 800; // normal pulse
 let azulInterval;
 
 function startAzulPulse() {
   const azul = document.getElementById("azul");
+  if (!azul) return;
+
   clearInterval(azulInterval);
 
   azulInterval = setInterval(() => {
@@ -25,12 +36,14 @@ function setAzulSpeed(speed) {
   azulSpeed = speed;
   startAzulPulse();
 }
-window.addEventListener("scroll", () => {
-  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
-    loadMore();
-  }
+
+window.addEventListener("load", () => {
+  startAzulPulse();
 });
 
+// ==============================
+// 🔎 SEARCH START
+// ==============================
 async function fetchDocs() {
   const query = document.getElementById("searchQuery").value || "declassified";
   const year = document.getElementById("yearFilter").value;
@@ -47,11 +60,23 @@ async function fetchDocs() {
   await loadMore();
 }
 
+// ==============================
+// ♾ INFINITE SCROLL
+// ==============================
+window.addEventListener("scroll", () => {
+  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+    loadMore();
+  }
+});
+
+// ==============================
+// 📥 LOAD MORE DOCUMENTS
+// ==============================
 async function loadMore() {
   if (isLoading) return;
   isLoading = true;
 
-  const feed = document.getElementById("feed");
+  setAzulSpeed(200); // faster pulse while loading
 
   const url = `https://api.govinfo.gov/search?query=${encodeURIComponent(currentQuery)}&offset=${currentOffset}&pageSize=${PAGE_SIZE}&api_key=${API_KEY}`;
 
@@ -66,7 +91,10 @@ async function loadMore() {
     for (const pkg of data.packages) {
       const pdfUrl = await getPdfUrl(pkg.packageId);
       let textContent = "";
-      if (pdfUrl) textContent = await parsePdf(pdfUrl);
+
+      if (pdfUrl) {
+        textContent = await parsePdf(pdfUrl);
+      }
 
       const scored = scoreSentences(
         textContent || pkg.summary || pkg.title,
@@ -78,12 +106,15 @@ async function loadMore() {
       allSentences = allSentences.concat(scored);
     }
 
+    // Sort by shock score
     allSentences.sort((a, b) => b.score - a.score);
 
     let count = 0;
+
     for (const sentence of allSentences) {
       if (!seenSentences.has(sentence.text)) {
         seenSentences.add(sentence.text);
+
         renderPost(
           sentence.text,
           sentence.date,
@@ -91,18 +122,24 @@ async function loadMore() {
           sentence.packageId,
           sentence.score
         );
+
         count++;
       }
+
       if (count >= POSTS_PER_BATCH) break;
     }
 
   } catch (error) {
-    console.error("Error loading more:", error);
+    console.error("Load error:", error);
   }
 
+  setAzulSpeed(800); // calm pulse after loading
   isLoading = false;
 }
 
+// ==============================
+// 📄 GET PDF URL
+// ==============================
 async function getPdfUrl(packageId) {
   try {
     const response = await fetch(
@@ -116,9 +153,13 @@ async function getPdfUrl(packageId) {
   }
 }
 
+// ==============================
+// 📚 PARSE PDF (first 10 pages only)
+// ==============================
 async function parsePdf(url) {
   const loadingTask = pdfjsLib.getDocument(url);
   const pdf = await loadingTask.promise;
+
   let fullText = "";
 
   for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
@@ -131,11 +172,21 @@ async function parsePdf(url) {
   return fullText;
 }
 
+// ==============================
+// 🔥 SCORE SENTENCES
+// ==============================
 function scoreSentences(text, packageId, date, collection) {
   const keywords = [
-    "classified", "covert", "experiment", "surveillance",
-    "nuclear", "biological", "intelligence",
-    "operation", "anomaly", "recovered"
+    "classified",
+    "covert",
+    "experiment",
+    "surveillance",
+    "nuclear",
+    "biological",
+    "intelligence",
+    "operation",
+    "anomaly",
+    "recovered"
   ];
 
   const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
@@ -160,6 +211,9 @@ function scoreSentences(text, packageId, date, collection) {
   });
 }
 
+// ==============================
+// 📰 RENDER POST
+// ==============================
 function renderPost(text, date, collection, packageId, score) {
   const feed = document.getElementById("feed");
   const div = document.createElement("div");
@@ -167,6 +221,12 @@ function renderPost(text, date, collection, packageId, score) {
 
   const shockLevel = Math.min(5, Math.ceil(score / 5));
   const fireIcons = "🔥".repeat(shockLevel);
+
+  // Overload reaction for max shock
+  if (shockLevel >= 5) {
+    setAzulSpeed(100);
+    setTimeout(() => setAzulSpeed(800), 2000);
+  }
 
   const glitchOffset = () => (Math.random() * 4 - 2) + "px";
 
