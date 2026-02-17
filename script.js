@@ -6,7 +6,25 @@ let currentOffset = 0;
 let isLoading = false;
 let currentQuery = "declassified";
 let seenSentences = new Set();
+// ===== Azul Pulse System =====
+let azulState = false;
+let azulSpeed = 800; // default pulse speed (ms)
+let azulInterval;
 
+function startAzulPulse() {
+  const azul = document.getElementById("azul");
+  clearInterval(azulInterval);
+
+  azulInterval = setInterval(() => {
+    azulState = !azulState;
+    azul.src = azulState ? "azul-cat2.png" : "azul-cat.png";
+  }, azulSpeed);
+}
+
+function setAzulSpeed(speed) {
+  azulSpeed = speed;
+  startAzulPulse();
+}
 window.addEventListener("scroll", () => {
   if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
     loadMore();
