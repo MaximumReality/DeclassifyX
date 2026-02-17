@@ -72,7 +72,7 @@ document.getElementById("searchButton").addEventListener("click", () => {
 });
 
 // Fetch documents
-async function fetchDocs(loadMore = false) {
+async function fetchDocs() {
   if (isLoading) return;
   isLoading = true;
 
@@ -80,44 +80,41 @@ async function fetchDocs(loadMore = false) {
   const year = document.getElementById("yearFilter").value.trim();
   const agency = document.getElementById("agencyFilter").value;
 
-  // 1. Build the query string using GovInfo's specific syntax
+  // 1. Build the specific Query Syntax
   let fullQuery = query;
-  if (agency) fullQuery += ` && collection:${agency}`;
-  if (year) fullQuery += ` && publishdate:range(${year}-01-01, ${year}-12-31)`;
+  if (agency) fullQuery += ` AND collection:${agency}`;
+  if (year) fullQuery += ` AND publishdate:${year}`;
 
-  // 2. The JSON body they are looking for
+  // 2. The JSON body
   const searchBody = {
     "query": fullQuery,
     "pageSize": 10,
-    "offsetPoint": offset // GovInfo uses offsetPoint for pagination
+    "offsetPoint": offset
   };
 
+  // 3. The Proxy Bridge (Bypasses CORS on iPhone)
+  const proxy = "https://cors-anywhere.herokuapp.com/";
+  const targetUrl = `${BASE_URL}/search?api_key=${API_KEY}`;
+
   try {
-    const res = await fetch(`${BASE_URL}/search?api_key=${API_KEY}`, {
+    const res = await fetch(proxy + targetUrl, { // We combine proxy + target
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest" // Required by many proxies
       },
       body: JSON.stringify(searchBody)
     });
 
-    if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to fetch");
-    }
+    if (!res.ok) throw new Error("Access Denied or Proxy full");
 
     const data = await res.json();
     
+    // Clear feed on new search
     if (offset === 0) document.getElementById("feed").innerHTML = "";
 
-    if (!data.results || data.results.length === 0) {
-      document.getElementById("feed").innerHTML += "<div class='post'>NO DATA FOUND.</div>";
-      isLoading = false;
-      return;
-    }
-
     data.results.forEach(pkg => {
-      // Mind-blowing logic
+      // Calculate 'Mind-Blowing' score
       let score = 0;
       const textToScan = (pkg.title + " " + (pkg.snippet || "")).toLowerCase();
       keywords.forEach(k => { if(textToScan.includes(k)) score += 5; });
@@ -126,28 +123,26 @@ async function fetchDocs(loadMore = false) {
       const div = document.createElement("div");
       div.className = "post";
       div.innerHTML = `
-        <div style="color:#0ff; border-bottom:1px solid #333; margin-bottom:5px;">>>> SOURCE: ${pkg.collectionCode}</div>
-        <div style="font-weight:bold;">${pkg.title}</div>
-        <div class="tweet-content">${pkg.snippet || "No summary available..."}</div>
+        <div style="color:#0ff; font-size:10px;">[ENCRYPTED SOURCE: ${pkg.collectionCode}]</div>
+        <div style="font-weight:bold; margin: 5px 0;">${pkg.title}</div>
+        <div style="color:#ccc; font-size:14px;">${pkg.snippet || "Accessing restricted summary..."}</div>
         <div class="meta">
-            SENSITIVITY: ${fireIcons || "📁"} | 📅 ${pkg.dateIssued || "N/A"} 
-            <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#f0f">[DECRYPT FILE]</a>
+            THREAT LEVEL: ${fireIcons || "NONE"} | 📅 ${pkg.dateIssued} 
+            <br><a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#f0f; text-decoration:none;">[VIEW DECLASSIFIED FILE]</a>
         </div>
       `;
       document.getElementById("feed").appendChild(div);
     });
 
-    offset += 10; 
+    offset += 10;
 
   } catch (err) {
-    console.error("Transmission Error:", err);
-    document.getElementById("feed").innerHTML += `<div class='post' style='color:#ff4444'>SYSTEM ERROR: ${err.message}</div>`;
+    document.getElementById("feed").innerHTML += `<div class='post'>PROXY ERROR: Visit <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" style="color:#0ff">this link</a> to request temporary access, then try again.</div>`;
   }
 
   isLoading = false;
 }
 
-}
 
 // Infinite scroll
 window.addEventListener("scroll", () => {
