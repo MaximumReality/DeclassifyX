@@ -70,6 +70,8 @@ async function fetchDocs() {
   const feed = document.getElementById("feed");
   const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
   const rawYear = document.getElementById("yearFilter").value.trim();
+  
+  // Year extraction logic
   const yearMatch = rawYear.match(/\d{4}/);
   const year = yearMatch ? yearMatch[0] : "";
 
@@ -78,19 +80,21 @@ async function fetchDocs() {
   // 1. Build the target URL
   let apiQuery = userQuery;
   if (year) apiQuery += ` AND publishdate:${year}`;
+  
+  // Construct the direct GovInfo URL
   const targetUrl = `https://api.govinfo.gov/search?query=${encodeURIComponent(apiQuery)}&pageSize=10&api_key=${API_KEY}`;
 
-  // 2. The "Silent" Proxy Wrapper
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+  // 2. Use Corsproxy.io (No wrapping needed, acts like a direct tunnel)
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
   try {
     const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
     
-    const wrappedData = await res.json();
+    if (!res.ok) {
+      throw new Error(`Server Status: ${res.status}`);
+    }
     
-    // AllOrigins returns the data as a string in the 'contents' property
-    const data = JSON.parse(wrappedData.contents);
+    const data = await res.json();
 
     if (!data.results || data.results.length === 0) {
       feed.innerHTML = "<div class='post'>🛑 NO INTEL FOUND. THE SYSTEM IS EMPTY.</div>";
@@ -111,12 +115,13 @@ async function fetchDocs() {
       });
     }
   } catch (err) {
-    // This will pop up on your iPhone screen to tell us the EXACT problem
-    alert("SYSTEM ERROR: " + err.message);
+    // If it says "Load Failed", this alert will help confirm it
+    alert("CRITICAL ERROR: " + err.message);
     feed.innerHTML = `<div class='post' style='color:red;'>🔴 CONNECTION ERROR. <br> Error: ${err.message}</div>`;
   }
   isLoading = false;
 }
+
 
 
 </script>
