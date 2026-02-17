@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DeclassifyX</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- PDF.js library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+</head>
+<body>
+
+  <!-- Azul Hacker Cat -->
+  <img id="azul" src="azul-cat.png" alt="Azul Hacker Cat">
+
+  <!-- Optional synthwave background music -->
+  <audio autoplay loop>
+    <source src="synthwave-loop.mp3" type="audio/mpeg">
+  </audio>
+
+  <h1>📂 DeclassifyX</h1>
+
+  <!-- Search Controls -->
+  <div class="controls">
+    <input type="text" id="searchQuery" placeholder="Keyword (CIA, nuclear, etc)">
+    <input type="text" id="yearFilter" placeholder="Year (1975)">
+    
+    <select id="agencyFilter">
+      <option value="">All Agencies</option>
+      <option value="CIA">CIA</option>
+      <option value="DOD">Department of Defense</option>
+      <option value="NSA">NSA</option>
+      <option value="DOE">Department of Energy</option>
+    </select>
+
+    <button onclick="fetchDocs()">Search</button>
+  </div>
+
+  <!-- Feed Container -->
+  <div id="feed"></div>
+
+  <!-- Main script -->
+  <script src="script.js"></script>
+</body>
+</html>
