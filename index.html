@@ -6,69 +6,38 @@
 <style>
   body { background:#000; color:#0ff; font-family:'Courier New', monospace; padding:20px; overflow-x:hidden; }
   h1 { color:#0ff; text-align:center; }
-  .controls { margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; }
-  .controls input, .controls select, button {
-    padding:8px; background:rgba(0,0,0,0.6); border:1px solid #0ff; color:#0ff; border-radius:4px;
-  }
+  .status-bar { text-align:center; margin-bottom:10px; font-size:12px; letter-spacing:2px; }
+  #status-light { display:inline-block; width:10px; height:10px; background:#f00; border-radius:50%; margin-right:5px; box-shadow: 0 0 5px #f00; }
+  .online { background:#0f0 !important; box-shadow:0 0 10px #0f0 !important; }
+  .controls { margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  input, button { padding:8px; background:rgba(0,0,0,0.6); border:1px solid #0ff; color:#0ff; border-radius:4px; }
   button:hover { background:#0ff; color:#000; cursor:pointer; }
   #feed { display:flex; flex-direction:column; gap:15px; }
-  .post { border-left:4px solid #0ff; padding:15px; background:rgba(0,0,0,0.7); }
+  .post { border-left:4px solid #0ff; padding:15px; background:rgba(0,0,0,0.7); word-wrap:break-word; }
   .meta { font-size:12px; color:#0ff; margin-top:5px; }
   #azul { position:fixed; bottom:10px; right:10px; width:80px; animation:float 3s infinite alternate ease-in-out; }
   @keyframes float { 0% { transform: translateY(0px);} 100% { transform: translateY(-20px);} }
-
-  <style>
-  /* Prevents text from bleeding off the screen on iPhone */
-  .post { 
-    border-left: 4px solid #0ff; 
-    padding: 15px; 
-    background: rgba(0,0,0,0.7); 
-    word-wrap: break-word; 
-    overflow-wrap: break-word;
-  }
-
-  /* Status Light Styles */
-  .status-bar {
-    text-align: center;
-    margin-bottom: 10px;
-    font-size: 12px;
-    letter-spacing: 2px;
-  }
-  #status-light {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    background: #ff4444; /* Default Red */
-    border-radius: 50%;
-    margin-right: 5px;
-    box-shadow: 0 0 5px #ff4444;
-  }
-  .online { background: #0f0 !important; box-shadow: 0 0 10px #0f0 !important; }
 </style>
+</head>
+<body>
 
 <div class="status-bar">
   <span id="status-light"></span> SYSTEM STATUS: <span id="status-text">OFFLINE</span>
 </div>
 
-</style>
-</head>
-<body>
-
 <img id="azul" src="azul-cat.png" alt="Azul Hacker Cat">
 <h1>📂 DeclassifyX</h1>
 
 <div class="controls">
-  <input type="text" id="searchQuery" placeholder="Keyword (CIA, nuclear, etc)">
-  <input type="text" id="yearFilter" placeholder="Year (1975)">
-  <select id="agencyFilter">
-  <option value="">All Intel Sources</option>
-  <option value="GAOREPORTS">GAO (Gov Accountability Office)</option>
-  <option value="CHRG">Congressional Hearings (Juicy Testimony)</option>
-  <option value="FR">Federal Register (Agency Rules)</option>
-  <option value="CPRT">Committee Prints (Deep Research)</option>
-</select>
-
+  <input type="text" id="searchQuery" placeholder="Keyword (UFO, CIA, etc)">
   <button id="searchButton">Search</button>
+</div>
+
+<div class="controls">
+  <button onclick="quickSearch('FBI')">FBI</button>
+  <button onclick="quickSearch('CIA')">CIA</button>
+  <button onclick="quickSearch('NSA')">NSA</button>
+  <button onclick="quickSearch('DOD')">DOD</button>
 </div>
 
 <div id="feed"></div>
@@ -79,72 +48,77 @@
 
 <script>
 const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
-const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence","ufo","uap","redacted"];
+const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence","ufo","uap"];
 let isLoading = false;
+
+// Azul Animation
+setInterval(() => {
+  const azul = document.getElementById("azul");
+  if(azul) {
+    azul.src = azul.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
+  }
+}, 800);
+
+function quickSearch(term) {
+  document.getElementById("searchQuery").value = term;
+  fetchDocs();
+}
+
+document.getElementById("searchButton").addEventListener("click", fetchDocs);
 
 async function fetchDocs() {
   if (isLoading) return;
   isLoading = true;
-  
+
   const feed = document.getElementById("feed");
   const statusLight = document.getElementById("status-light");
   const statusText = document.getElementById("status-text");
-  const userQuery = document.getElementById("searchQuery").value.trim() || "intelligence";
-  
-  feed.innerHTML = "<div class='post' style='animation: pulse 1.5s infinite;'>📡 SEARCHING...</div>";
+  const query = document.getElementById("searchQuery").value.trim() || "declassified";
+
+  feed.innerHTML = "<div class='post'>📡 SCANNING FREQUENCIES...</div>";
   statusText.innerText = "UPLINKING...";
+  statusLight.style.background = "#ff0"; // Yellow while searching
 
-  // Payload with the required offsetMark *
-  const searchPayload = {
-    "query": userQuery,
-    "pageSize": 10,
-    "offsetMark": "*" 
-  };
-
-  // Using the GET wrapper for AllOrigins - this is the most stable free way
-  const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
-  // We use the 'allorigins' GET proxy which usually bypasses the POST restrictions by wrapping the request
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&callback=?`;
+  // Using a simplified GET approach with a transparent proxy for stability
+  const targetUrl = `https://api.govinfo.gov/search?query=${encodeURIComponent(query)}&pageSize=10&api_key=${API_KEY}`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
   try {
-    // Because we need a POST, we'll try one more transparent bridge that is free
-    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.govinfo.gov/search?api_key=' + API_KEY)}`);
-    
-    // If the government server is being too strict about POST, we use this direct fetch trick
+    const res = await fetch(proxyUrl);
     const wrapped = await res.json();
     const data = JSON.parse(wrapped.contents);
 
-    statusLight.classList.add("online");
-    statusText.innerText = "CONNECTED";
-    feed.innerHTML = "";
+    if (data.results && data.results.length > 0) {
+      statusLight.className = "online";
+      statusLight.style.background = "#0f0";
+      statusText.innerText = "SECURE LINK ACTIVE";
+      feed.innerHTML = "";
 
-    data.results.forEach(pkg => {
-      let score = 0;
-      const text = (pkg.title + (pkg.snippet || "")).toLowerCase();
-      keywords.forEach(k => { if(text.includes(k)) score++; });
-      
-      const div = document.createElement("div");
-      div.className = "post";
-      div.innerHTML = `
-        <div style="color:#0ff; font-size:10px;">[INTEL] ${"🔥".repeat(Math.min(3, score))}</div>
-        <div style="font-weight:bold; color:#f0f; margin:5px 0;">${pkg.title}</div>
-        <p style="font-size:14px; color:#0ff;">${pkg.snippet || "View file for details."}</p>
-        <div class="meta">
-          📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;">[OPEN]</a>
-        </div>
-      `;
-      feed.appendChild(div);
-    });
+      data.results.forEach(pkg => {
+        let score = 0;
+        const text = (pkg.title + (pkg.snippet || "")).toLowerCase();
+        keywords.forEach(k => { if(text.includes(k)) score++; });
+
+        const div = document.createElement("div");
+        div.className = "post";
+        div.innerHTML = `
+          <div style="color:#0ff; font-size:10px;">[INTEL] ${"🔥".repeat(Math.min(3, score))}</div>
+          <div style="font-weight:bold; color:#f0f;">${pkg.title}</div>
+          <p style="font-size:14px;">${pkg.snippet || "Dossier encrypted."}</p>
+          <div class="meta">📅 ${pkg.dateIssued} | <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;">[OPEN]</a></div>
+        `;
+        feed.appendChild(div);
+      });
+    } else {
+      throw new Error("No results");
+    }
   } catch (err) {
-    // If it fails, we provide a clear, one-tap fix
-    statusLight.classList.remove("online");
-    statusText.innerText = "OFFLINE";
-    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 CONNECTION RESET.<br>The proxy link might need a quick refresh. Please try again in a moment.</div>`;
+    statusLight.style.background = "#f00";
+    statusText.innerText = "LINK FAILED";
+    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 NO SIGNAL. Try a different keyword or tap a button above.</div>`;
   }
   isLoading = false;
 }
-
 </script>
-
 </body>
 </html>
