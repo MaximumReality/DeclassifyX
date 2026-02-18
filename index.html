@@ -71,7 +71,8 @@ document.getElementById("searchButton").addEventListener("click", () => {
 });
 
   function routeAgency(agency) {
-  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
+  const queryInput = document.getElementById("searchQuery");
+  const query = queryInput.value.trim() || "intelligence";
   let url = "";
 
   switch (agency) {
@@ -92,11 +93,18 @@ document.getElementById("searchButton").addEventListener("click", () => {
       break;
 
     default:
-      fetchDocs(); // fallback to GovInfo
+      fetchDocs();
       return;
   }
 
+  // Open the agency page
   window.open(url, "_blank");
+
+  // Friendly: also update the query box (optional)
+  queryInput.value = query;
+
+  // Fetch GovInfo documents automatically
+  fetchDocs();
 }
   
 
