@@ -104,6 +104,11 @@
   <div id="feed"></div>
 
   <script>
+const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
+const keywords = ["classified","secret","nuclear","covert","intelligence","ufo","uap","redacted"];
+let isLoading = false;
+let searchHistory = [];
+
 window.addEventListener("DOMContentLoaded", () => {
   const feed = document.getElementById("feed");
   const azulImg = document.getElementById("azul");
@@ -128,7 +133,6 @@ window.addEventListener("DOMContentLoaded", () => {
       <p style="font-size:12px; color:#0ff; margin-top:5px;">Welcome back, Agent. Use the uplink to scan federal frequencies.</p>
     </div>
   `;
-
   const crt = document.getElementById("crtPost");
 
   // --- CRT FLICKER ---
@@ -146,7 +150,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // --- AZUL SPEECH BUBBLE ---
   const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!","Connection secure.","Great work!"];
-
   function azulTalk() {
     bubble.innerText = tips[Math.floor(Math.random()*tips.length)];
     bubble.style.display = "block";
@@ -154,10 +157,8 @@ window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => { bubble.style.display = "none"; }, 3000);
   }
 
-  // Auto bubble every 8 seconds
+  // Auto bubble every 8 seconds + click
   setInterval(azulTalk, 8000);
-
-  // Bubble on click
   azulImg.addEventListener("click", azulTalk);
 
   // --- MUSIC CONTROL ---
@@ -167,70 +168,24 @@ window.addEventListener("DOMContentLoaded", () => {
       musicStarted = true;
     }
   }
-
-  // Start music on any user interaction (click/keypress)
   document.body.addEventListener("click", startMusic, { once: true });
   document.body.addEventListener("keydown", startMusic, { once: true });
-});
-</script>
 
-  <audio id="bgMusic" loop>
-    <source src="synthwave-loop.mp3" type="audio/mpeg">
-  </audio>
-
-<script>
-const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
-const keywords = ["classified","secret","nuclear","covert","intelligence","ufo","uap","redacted"];
-let isLoading = false;
-let searchHistory = [];
-
-const music = document.getElementById("bgMusic");
-let musicStarted = false;
-
-// Azul animation
-setInterval(() => {
-  const azulImg = document.getElementById("azul");
-  if(azulImg){
-    azulImg.src = azulImg.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
-  }
-}, 800);
-
-function azulTalk() {
-  const bubble = document.getElementById("cat-bubble");
-  const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!","Connection secure.","Great work!"];
-  bubble.innerText = tips[Math.floor(Math.random()*tips.length)];
-  bubble.style.display = "block";
-  setTimeout(() => { bubble.style.display = "none"; }, 3000);
-}
-
-// Search button
-document.getElementById("searchButton").addEventListener("click", () => {
-  if(!musicStarted){ music.play().catch(e=>console.log(e)); musicStarted=true; }
-  fetchDocs();
+  // --- SEARCH BUTTON ---
+  document.getElementById("searchButton").addEventListener("click", () => {
+    startMusic();
+    fetchDocs();
+  });
 });
 
-// Agency routing
-function routeAgency(agency) {
-  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
-  let url = "";
-  switch (agency) {
-    case "FBI": url = `https://vault.fbi.gov/search?SearchableText=${encodeURIComponent(query)}`; break;
-    case "CIA": url = `https://www.cia.gov/readingroom/search/site/${encodeURIComponent(query)}`; break;
-    case "NSA": url = `https://www.nsa.gov/news-features/declassified-documents/?s=${encodeURIComponent(query)}`; break;
-    case "DOD": url = `https://www.esd.whs.mil/FOIA/Reading-Room/?q=${encodeURIComponent(query)}`; break;
-  }
-  window.open(url, "_blank");
-  saveToHistory(query);
-  fetchDocs();
-}
-
-// Search history
+// --- SEARCH HISTORY FUNCTIONS ---
 function saveToHistory(term) {
-  if (!term || searchHistory.includes(term)) return;
+  if(!term || searchHistory.includes(term)) return;
   searchHistory.unshift(term);
-  if (searchHistory.length > 5) searchHistory.pop();
+  if(searchHistory.length > 5) searchHistory.pop();
   renderHistory();
 }
+
 function renderHistory() {
   const hList = document.getElementById("history-list");
   hList.innerHTML = "";
@@ -242,10 +197,26 @@ function renderHistory() {
   });
 }
 
-// Fetch documents
+// --- AGENCY ROUTING ---
+function routeAgency(agency) {
+  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
+  let url = "";
+  switch(agency){
+    case "FBI": url = `https://vault.fbi.gov/search?SearchableText=${encodeURIComponent(query)}`; break;
+    case "CIA": url = `https://www.cia.gov/readingroom/search/site/${encodeURIComponent(query)}`; break;
+    case "NSA": url = `https://www.nsa.gov/news-features/declassified-documents/?s=${encodeURIComponent(query)}`; break;
+    case "DOD": url = `https://www.esd.whs.mil/FOIA/Reading-Room/?q=${encodeURIComponent(query)}`; break;
+  }
+  window.open(url,"_blank");
+  saveToHistory(query);
+  fetchDocs();
+}
+
+// --- FETCH DOCUMENTS ---
 async function fetchDocs() {
   if(isLoading) return;
   isLoading = true;
+
   const feed = document.getElementById("feed");
   const statusLight = document.getElementById("status-light");
   const statusText = document.getElementById("status-text");
@@ -269,18 +240,19 @@ async function fetchDocs() {
       method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)
     });
     const data = await res.json();
+
     if(data.results && data.results.length > 0){
       statusLight.className="online";
       statusText.innerText="LINK ACTIVE";
       feed.innerHTML="";
       data.results.forEach(pkg => {
-        let score=0;
+        let score = 0;
         const checkText = (pkg.title + (pkg.snippet||"")).toLowerCase();
         keywords.forEach(k=>{if(checkText.includes(k)) score++;});
         const tweet = encodeURIComponent(`🚨 Found on #DeclassifyX: ${pkg.title}`);
         const div = document.createElement("div");
         div.className="post";
-        div.innerHTML=`
+        div.innerHTML = `
           <div style="color:#0ff;font-size:10px;margin-bottom:5px;">[STRENGTH: ${"🔥".repeat(Math.min(3,score))}]</div>
           <div style="font-weight:bold;color:#f0f;margin-bottom:8px;">${pkg.title}</div>
           <p style="font-size:14px;line-height:1.5;">${pkg.snippet||"View file..."}</p>
@@ -291,16 +263,16 @@ async function fetchDocs() {
         feed.appendChild(div);
       });
     } else {
-      feed.innerHTML="<div class='post'>🛑 NO DATA FOUND.</div>";
-      statusLight.style.background="#f00";
-      statusText.innerText="NO DATA";
+      feed.innerHTML = "<div class='post'>🛑 NO DATA FOUND.</div>";
+      statusLight.style.background = "#f00";
+      statusText.innerText = "NO DATA";
     }
   } catch(err){
-    statusLight.style.background="#f00";
-    statusText.innerText="OFFLINE";
-    feed.innerHTML=`<div class='post' style='color:#ff0;'>📡 ERROR: Check connection.</div>`;
+    statusLight.style.background = "#f00";
+    statusText.innerText = "OFFLINE";
+    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 ERROR: Check connection.</div>`;
   }
-  isLoading=false;
+  isLoading = false;
 }
 </script>
 </body>
