@@ -5,64 +5,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>DeclassifyX | FOIA Terminal</title>
   <style>
-    /* RESET & LAYOUT */
+    /* 1. RESET & RESPONSIVE LAYOUT */
     * { box-sizing: border-box; }
     body { 
-      background:#000; color:#0ff; font-family:'Courier New', monospace; 
-      padding:15px; margin:0; overflow-x:hidden;
-      display:flex; flex-direction:column; align-items:center;
+      background: #000; color: #0ff; font-family: 'Courier New', monospace; 
+      padding: 15px; margin: 0; overflow-x: hidden;
+      display: flex; flex-direction: column; align-items: center;
     }
 
-    /* NAVIGATION */
+    /* 2. NAVIGATION & HEADER */
     .nav-header {
-      width:100%; max-width:400px;
-      display:flex; justify-content:space-between; align-items:center;
-      margin-bottom:10px;
+      width: 100%; max-width: 400px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
     }
     .home-btn {
-      text-decoration:none; font-size:24px; border:1px solid #0ff;
-      padding:5px 12px; border-radius:4px; background: rgba(0,255,255,0.1);
-      box-shadow:0 0 5px #0ff;
+      text-decoration: none; font-size: 24px; border: 1px solid #0ff;
+      padding: 5px 12px; border-radius: 4px; background: rgba(0, 255, 255, 0.1);
+      box-shadow: 0 0 5px #0ff; transition: 0.3s;
     }
-    .nav-label { font-size:10px; opacity:0.6; letter-spacing:1px; }
+    .home-btn:active { transform: scale(0.9); background: #0ff; color: #000; }
+    .nav-label { font-size: 10px; opacity: 0.6; letter-spacing: 1px; }
 
-    /* STATUS BAR */
-    .status-bar { width:100%; max-width:400px; text-align:center; 
-      margin-bottom:15px; font-size:11px; letter-spacing:1px; 
-      border:1px solid #333; padding:8px; }
-    #status-light { display:inline-block; width:10px; height:10px; background:#f00; border-radius:50%; margin-right:5px; }
-    .online { background:#0f0 !important; box-shadow:0 0 10px #0f0 !important; }
+    /* 3. STATUS BAR */
+    .status-bar { 
+      width: 100%; max-width: 400px; text-align: center; 
+      margin-bottom: 15px; font-size: 11px; letter-spacing: 1px; 
+      border: 1px solid #333; padding: 8px; 
+    }
+    #status-light { display: inline-block; width: 10px; height: 10px; background: #f00; border-radius: 50%; margin-right: 5px; }
+    .online { background: #0f0 !important; box-shadow: 0 0 10px #0f0 !important; }
 
-    /* CONTROLS */
-    h1 { color:#0ff; text-align:center; text-shadow:0 0 10px #0ff; margin:0 0 15px; }
-    .controls { width:100%; max-width:400px; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-    input, button { padding:12px; background:rgba(0,0,0,0.8); border:1px solid #0ff; color:#0ff; border-radius:4px; font-size:14px; }
-    #searchQuery { flex:1; min-width:150px; }
-    #yearFilter { width:85px; }
-    #searchButton { width:100%; font-weight:bold; cursor:pointer; }
+    /* 4. CONTROLS & INPUTS */
+    h1 { color: #0ff; text-align: center; text-shadow: 0 0 10px #0ff; margin: 0 0 15px; }
+    .controls { width: 100%; max-width: 400px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    input, button { padding: 12px; background: rgba(0,0,0,0.8); border: 1px solid #0ff; color: #0ff; border-radius: 4px; font-size: 14px; outline: none; }
+    #searchQuery { flex: 1; min-width: 150px; }
+    #yearFilter { width: 85px; }
+    #searchButton { width: 100%; font-weight: bold; cursor: pointer; }
 
-    /* AGENCY BUTTONS */
-    .agency-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; max-width:400px; margin-bottom:20px; }
-    .btn-fbi { border-color:#002d62 !important; color:#739aff !important; }
-    .btn-cia { border-color:#4b4b4b !important; color:#d1d1d1 !important; }
-    .btn-nsa { border-color:#616161 !important; color:#ffffff !important; }
-    .btn-dod { border-color:#004439 !important; color:#66ffb3 !important; }
+    /* 5. AGENCY GRID */
+    .agency-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 400px; margin-bottom: 20px; }
+    .btn-fbi { border-color: #002d62 !important; color: #739aff !important; }
+    .btn-cia { border-color: #4b4b4b !important; color: #d1d1d1 !important; }
+    .btn-nsa { border-color: #616161 !important; color: #ffffff !important; }
+    .btn-dod { border-color: #004439 !important; color: #66ffb3 !important; }
 
-    /* HISTORY & FEED */
-    #history-container { width:100%; max-width:400px; margin-bottom:20px; text-align:center; }
-    #history-list { display:flex; flex-wrap:wrap; justify-content:center; gap:5px; }
-    #history-list button { margin:0; font-size:10px; padding:5px 10px; border-color:#444; cursor:pointer; }
-    #feed { width:100%; max-width:450px; display:flex; flex-direction:column; gap:15px; }
-    .post { border-left:4px solid #0ff; padding:15px; background:rgba(10,10,10,0.9); word-wrap:break-word; border-radius:0 8px 8px 0; }
-    .meta { font-size:12px; color:#0ff; margin-top:15px; display:flex; flex-wrap:wrap; gap:10px; }
+    /* 6. HISTORY & FEED */
+    #history-container { width: 100%; max-width: 400px; margin-bottom: 20px; text-align: center; }
+    #history-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+    #history-list button { margin: 0; font-size: 10px; padding: 5px 10px; border-color: #444; cursor: pointer; }
+    #feed { width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 15px; }
+    .post { border-left: 4px solid #0ff; padding: 15px; background: rgba(10,10,10,0.9); word-wrap: break-word; border-radius: 0 8px 8px 0; }
+    .meta { font-size: 12px; color: #0ff; margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta a { text-decoration: none; border: 1px solid; padding: 8px; }
 
-    /* AZUL */
-    #azul-container { position:fixed; bottom:10px; right:10px; z-index:100; text-align:center; }
-    #azul { width:65px; opacity:0.8; cursor:pointer; transition:0.3s; }
+    /* 7. AZUL INTERFACE */
+    #azul-container { position: fixed; bottom: 10px; right: 10px; z-index: 100; text-align: center; }
+    #azul { width: 65px; opacity: 0.8; cursor: pointer; transition: 0.3s; }
     #azul:active { transform: scale(0.9); }
-    #cat-bubble { background:#0ff; color:#000; font-size:10px; padding:6px; border-radius:5px; display:none; margin-bottom:5px; max-width:120px; box-shadow:0 0 10px #0ff;}
+    #cat-bubble { background: #0ff; color: #000; font-size: 10px; padding: 6px; border-radius: 5px; display: none; margin-bottom: 5px; max-width: 120px; box-shadow: 0 0 10px #0ff; font-weight: bold;}
 
-    @keyframes pulse { 0% { opacity:1; } 50% { opacity:0.4; } 100% { opacity:1; } }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
   </style>
 </head>
 <body>
@@ -74,7 +78,7 @@
 
   <div id="azul-container">
     <div id="cat-bubble">SYSTEM ONLINE</div>
-    <img id="azul" src="azul-cat.png" onclick="azulTalk()" alt="Azul">
+    <img id="azul" src="azul-cat.png" onclick="azulManualTalk()" alt="Azul">
   </div>
 
   <div class="status-bar">
@@ -97,183 +101,206 @@
   </div>
 
   <div id="history-container">
-    <div style="font-size:9px; color:#555; margin-bottom:5px;">RECENT SIGNALS:</div>
+    <div style="font-size: 9px; color: #555; margin-bottom: 5px;">RECENT SIGNALS:</div>
     <div id="history-list"></div>
   </div>
 
   <div id="feed"></div>
 
-  <script>
-const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
-const keywords = ["classified","secret","nuclear","covert","intelligence","ufo","uap","redacted"];
-let isLoading = false;
-let searchHistory = [];
+  <audio id="bgMusic" loop>
+    <source src="synthwave-loop.mp3" type="audio/mpeg">
+  </audio>
 
-window.addEventListener("DOMContentLoaded", () => {
-  const feed = document.getElementById("feed");
-  const azulImg = document.getElementById("azul");
-  const bubble = document.getElementById("cat-bubble");
-  const music = document.getElementById("bgMusic");
+<script>
+  // --- CONFIGURATION ---
+  const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
+  const keywords = ["classified","secret","nuclear","covert","intelligence","ufo","uap","redacted"];
+  const tips = ["Search 1999!", "Logic is sharp.", "System ready.", "Stay curious!", "Connection secure.", "Great work!"];
+  let isLoading = false;
+  let searchHistory = [];
   let musicStarted = false;
 
-  // --- INITIAL "CLASSIFIED" POST ---
-  feed.innerHTML = `
-    <div class="post" id="crtPost" style="border-color: #f0f; color: #f0f; text-align:center;">
-      <pre style="font-size: 10px; line-height: 1.2; color: #f0f; text-shadow: 0 0 8px #f0f;">
+  // --- INITIALIZATION ---
+  window.onload = () => {
+    renderWelcomeBanner();
+    startAzulAnimations();
+    setupEventListeners();
+  };
+
+  function setupEventListeners() {
+    document.getElementById("searchButton").addEventListener("click", () => {
+      startMusic();
+      fetchDocs();
+    });
+  }
+
+  function startMusic() {
+    const music = document.getElementById("bgMusic");
+    if(!musicStarted) {
+      music.play().catch(e => console.log("Music blocked until interaction"));
+      musicStarted = true;
+    }
+  }
+
+  // --- UI RENDERERS ---
+  function renderWelcomeBanner() {
+    const feed = document.getElementById("feed");
+    feed.innerHTML = `
+      <div class="post" id="crtPost" style="border-color: #f0f; color: #f0f; text-align: center;">
+        <pre style="font-size: 10px; line-height: 1.2; color: #f0f; text-shadow: 0 0 8px #f0f;">
 ██████╗ ███████╗ ██████╗██╗      █████╗ ███████╗███████╗██╗███████╗██████╗ 
 ██╔══██╗██╔════╝██╔════╝██║     ██╔══██╗██╔════╝██╔════╝██║██╔════╝██╔══██╗
 ██║  ██║█████╗  ██║     ██║     ███████║███████╗███████╗██║█████╗  ██║  ██║
 ██║  ██║██╔══╝  ██║     ██║     ██╔══██║╚════██║╚════██║██║██╔══╝  ██║  ██║
 ██████╔╝███████╗╚██████╗███████╗██║  ██║███████║███████║██║███████╗██████╔╝
 ╚═════╝ ╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚══════╝╚═════╝
-      </pre>
-      <div style="letter-spacing:5px; font-weight:bold; margin-top:10px; text-shadow:0 0 5px #f0f;">
-        [ RESTRICTED ACCESS : LEVEL 5 CLEARANCE ]
+        </pre>
+        <div style="letter-spacing: 5px; font-weight: bold; margin-top: 10px; text-shadow: 0 0 5px #f0f;">
+          [ RESTRICTED ACCESS : LEVEL 5 CLEARANCE ]
+        </div>
+        <p style="font-size: 12px; color: #0ff; margin-top:5px;">Welcome back, Agent. Use the uplink to scan federal frequencies.</p>
       </div>
-      <p style="font-size:12px; color:#0ff; margin-top:5px;">Welcome back, Agent. Use the uplink to scan federal frequencies.</p>
-    </div>
-  `;
-  const crt = document.getElementById("crtPost");
+    `;
 
-  // --- CRT FLICKER ---
-  setInterval(() => {
-    const opacity = 0.7 + Math.random() * 0.3;
-    const blur = Math.random() * 2;
-    crt.style.opacity = opacity;
-    crt.style.textShadow = `0 0 ${2 + blur}px #f0f`;
-  }, 100);
+    // CRT Flicker Logic
+    const crt = document.getElementById("crtPost");
+    setInterval(() => {
+      crt.style.opacity = 0.8 + Math.random() * 0.2;
+      crt.style.textShadow = `0 0 ${2 + Math.random() * 2}px #f0f`;
+    }, 100);
+  }
 
-  // --- AZUL ANIMATION ---
-  setInterval(() => {
-    azulImg.src = azulImg.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
-  }, 800);
+  // --- AZUL ANIMATION ENGINE ---
+  function startAzulAnimations() {
+    const azulImg = document.getElementById("azul");
+    // Sprite swap
+    setInterval(() => {
+      if(azulImg) azulImg.src = azulImg.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
+    }, 800);
 
-  // --- AZUL SPEECH BUBBLE ---
-  const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!","Connection secure.","Great work!"];
-  function azulTalk() {
-    bubble.innerText = tips[Math.floor(Math.random()*tips.length)];
+    // Auto-talk loop
+    setInterval(azulTalkLoop, 10000);
+    setTimeout(azulTalkLoop, 2000); // Talk shortly after load
+  }
+
+  function azulTalkLoop() {
+    const bubble = document.getElementById("cat-bubble");
+    bubble.innerText = tips[Math.floor(Math.random() * tips.length)];
     bubble.style.display = "block";
-    bubble.style.opacity = "1";
-    setTimeout(() => { bubble.style.display = "none"; }, 3000);
+    bubble.style.opacity = "0";
+    
+    let fade = 0;
+    const fadeInterval = setInterval(() => {
+      fade += 0.1;
+      bubble.style.opacity = fade;
+      if(fade >= 1) {
+        clearInterval(fadeInterval);
+        setTimeout(() => { bubble.style.display = "none"; }, 3000);
+      }
+    }, 50);
   }
 
-  // Auto bubble every 8 seconds + click
-  setInterval(azulTalk, 8000);
-  azulImg.addEventListener("click", azulTalk);
+  function azulManualTalk() {
+    startMusic(); // Also starts music if you tap him
+    azulTalkLoop();
+  }
 
-  // --- MUSIC CONTROL ---
-  function startMusic() {
-    if(!musicStarted){
-      music.play().catch(() => {}); // may require interaction
-      musicStarted = true;
+  // --- CORE LOGIC ---
+  function routeAgency(agency) {
+    const query = document.getElementById("searchQuery").value.trim() || "intelligence";
+    let url = "";
+    switch (agency) {
+      case "FBI": url = `https://vault.fbi.gov/search?SearchableText=${encodeURIComponent(query)}`; break;
+      case "CIA": url = `https://www.cia.gov/readingroom/search/site/${encodeURIComponent(query)}`; break;
+      case "NSA": url = `https://www.nsa.gov/news-features/declassified-documents/?s=${encodeURIComponent(query)}`; break;
+      case "DOD": url = `https://www.esd.whs.mil/FOIA/Reading-Room/?q=${encodeURIComponent(query)}`; break;
     }
-  }
-  document.body.addEventListener("click", startMusic, { once: true });
-  document.body.addEventListener("keydown", startMusic, { once: true });
-
-  // --- SEARCH BUTTON ---
-  document.getElementById("searchButton").addEventListener("click", () => {
-    startMusic();
+    window.open(url, "_blank");
+    saveToHistory(query);
     fetchDocs();
-  });
-});
-
-// --- SEARCH HISTORY FUNCTIONS ---
-function saveToHistory(term) {
-  if(!term || searchHistory.includes(term)) return;
-  searchHistory.unshift(term);
-  if(searchHistory.length > 5) searchHistory.pop();
-  renderHistory();
-}
-
-function renderHistory() {
-  const hList = document.getElementById("history-list");
-  hList.innerHTML = "";
-  searchHistory.forEach(term => {
-    const btn = document.createElement("button");
-    btn.innerText = term;
-    btn.onclick = () => { document.getElementById("searchQuery").value = term; fetchDocs(); };
-    hList.appendChild(btn);
-  });
-}
-
-// --- AGENCY ROUTING ---
-function routeAgency(agency) {
-  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
-  let url = "";
-  switch(agency){
-    case "FBI": url = `https://vault.fbi.gov/search?SearchableText=${encodeURIComponent(query)}`; break;
-    case "CIA": url = `https://www.cia.gov/readingroom/search/site/${encodeURIComponent(query)}`; break;
-    case "NSA": url = `https://www.nsa.gov/news-features/declassified-documents/?s=${encodeURIComponent(query)}`; break;
-    case "DOD": url = `https://www.esd.whs.mil/FOIA/Reading-Room/?q=${encodeURIComponent(query)}`; break;
   }
-  window.open(url,"_blank");
-  saveToHistory(query);
-  fetchDocs();
-}
 
-// --- FETCH DOCUMENTS ---
-async function fetchDocs() {
-  if(isLoading) return;
-  isLoading = true;
+  function saveToHistory(term) {
+    if (!term || searchHistory.includes(term)) return;
+    searchHistory.unshift(term);
+    if (searchHistory.length > 5) searchHistory.pop();
+    renderHistory();
+  }
 
-  const feed = document.getElementById("feed");
-  const statusLight = document.getElementById("status-light");
-  const statusText = document.getElementById("status-text");
-  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
-  const rawYear = document.getElementById("yearFilter").value;
-  const yearMatch = rawYear.match(/\d{4}/);
-  const year = yearMatch ? yearMatch[0] : "";
-
-  saveToHistory(query);
-  feed.innerHTML = "<div class='post' style='animation:pulse 1s infinite;'>📡 INTERCEPTING...</div>";
-  statusLight.style.background = "#ff0";
-  statusText.innerText = "SEARCHING...";
-
-  let finalQuery = query;
-  if(year) finalQuery += ` AND publishdate:${year}`;
-
-  const payload = { query: finalQuery, pageSize:10, offsetMark:"*", sorts:[{field:"publishdate", sortOrder:"DESC"}] };
-
-  try {
-    const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(`https://api.govinfo.gov/search?api_key=${API_KEY}`), {
-      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)
+  function renderHistory() {
+    const hList = document.getElementById("history-list");
+    hList.innerHTML = "";
+    searchHistory.forEach(term => {
+      const btn = document.createElement("button");
+      btn.innerText = term;
+      btn.onclick = () => { document.getElementById("searchQuery").value = term; fetchDocs(); };
+      hList.appendChild(btn);
     });
-    const data = await res.json();
-
-    if(data.results && data.results.length > 0){
-      statusLight.className="online";
-      statusText.innerText="LINK ACTIVE";
-      feed.innerHTML="";
-      data.results.forEach(pkg => {
-        let score = 0;
-        const checkText = (pkg.title + (pkg.snippet||"")).toLowerCase();
-        keywords.forEach(k=>{if(checkText.includes(k)) score++;});
-        const tweet = encodeURIComponent(`🚨 Found on #DeclassifyX: ${pkg.title}`);
-        const div = document.createElement("div");
-        div.className="post";
-        div.innerHTML = `
-          <div style="color:#0ff;font-size:10px;margin-bottom:5px;">[STRENGTH: ${"🔥".repeat(Math.min(3,score))}]</div>
-          <div style="font-weight:bold;color:#f0f;margin-bottom:8px;">${pkg.title}</div>
-          <p style="font-size:14px;line-height:1.5;">${pkg.snippet||"View file..."}</p>
-          <div class="meta">
-            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;text-decoration:none;border:1px solid #0ff;padding:8px;">[FILE]</a>
-            <a href="https://twitter.com/intent/tweet?text=${tweet}" target="_blank" style="color:#1d9bf0;text-decoration:none;border:1px solid #1d9bf0;padding:8px;">[SHARE]</a>
-          </div>`;
-        feed.appendChild(div);
-      });
-    } else {
-      feed.innerHTML = "<div class='post'>🛑 NO DATA FOUND.</div>";
-      statusLight.style.background = "#f00";
-      statusText.innerText = "NO DATA";
-    }
-  } catch(err){
-    statusLight.style.background = "#f00";
-    statusText.innerText = "OFFLINE";
-    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 ERROR: Check connection.</div>`;
   }
-  isLoading = false;
-}
+
+  async function fetchDocs() {
+    if(isLoading) return;
+    isLoading = true;
+
+    const feed = document.getElementById("feed");
+    const statusLight = document.getElementById("status-light");
+    const statusText = document.getElementById("status-text");
+    const query = document.getElementById("searchQuery").value.trim() || "intelligence";
+    const rawYear = document.getElementById("yearFilter").value;
+    const yearMatch = rawYear.match(/\d{4}/);
+    const year = yearMatch ? yearMatch[0] : "";
+
+    saveToHistory(query);
+    feed.innerHTML = "<div class='post' style='animation: pulse 1s infinite;'>📡 INTERCEPTING ENCRYPTED UPLINK...</div>";
+    statusLight.style.background = "#ff0";
+    statusLight.className = "";
+    statusText.innerText = "SEARCHING...";
+
+    let finalQuery = query;
+    if(year) finalQuery += ` AND publishdate:${year}`;
+
+    const payload = { query: finalQuery, pageSize: 10, offsetMark: "*", sorts: [{ field: "publishdate", sortOrder: "DESC" }] };
+
+    try {
+      const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(`https://api.govinfo.gov/search?api_key=${API_KEY}`), {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.results && data.results.length > 0) {
+        statusLight.className = "online";
+        statusText.innerText = "LINK ACTIVE";
+        feed.innerHTML = "";
+        data.results.forEach(pkg => {
+          let score = 0;
+          const checkText = (pkg.title + (pkg.snippet || "")).toLowerCase();
+          keywords.forEach(k => { if(checkText.includes(k)) score++; });
+          
+          const tweet = encodeURIComponent(`🚨 Found on #DeclassifyX: ${pkg.title}`);
+          const div = document.createElement("div");
+          div.className = "post";
+          div.innerHTML = `
+            <div style="color:#0ff; font-size:10px; margin-bottom:5px;">[STRENGTH: ${"🔥".repeat(Math.min(3, score))}]</div>
+            <div style="font-weight:bold; color:#f0f; margin-bottom:8px;">${pkg.title}</div>
+            <p style="font-size:14px; line-height:1.5;">${pkg.snippet || "Accessing dossier details..."}</p>
+            <div class="meta">
+              <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; border-color:#0ff;">[FILE]</a>
+              <a href="https://twitter.com/intent/tweet?text=${tweet}" target="_blank" style="color:#1d9bf0; border-color:#1d9bf0;">[SHARE]</a>
+            </div>`;
+          feed.appendChild(div);
+        });
+      } else {
+        feed.innerHTML = "<div class='post'>🛑 NO DATA IN THIS SECTOR. TRY DIFFERENT PARAMETERS.</div>";
+        statusLight.style.background = "#f00";
+        statusText.innerText = "NO DATA";
+      }
+    } catch (err) {
+      statusLight.style.background = "#f00";
+      statusText.innerText = "OFFLINE";
+      feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 ERROR: SIGNAL LOST. CHECK CONNECTION.</div>`;
+    }
+    isLoading = false;
+  }
 </script>
 </body>
 </html>
