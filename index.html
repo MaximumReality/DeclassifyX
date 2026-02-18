@@ -32,12 +32,10 @@
   <button id="searchButton">EXECUTE SEARCH</button>
 </div>
 
-<div class="controls">
-  <button onclick="quickSearch('FBI')">FBI</button>
-  <button onclick="quickSearch('CIA')">CIA</button>
-  <button onclick="quickSearch('NSA')">NSA</button>
-  <button onclick="quickSearch('DOD')">DOD</button>
-</div>
+<button onclick="routeAgency('FBI')">FBI</button>
+<button onclick="routeAgency('CIA')">CIA</button>
+<button onclick="routeAgency('NSA')">NSA</button>
+<button onclick="routeAgency('DOD')">DOD</button>
 
 <div id="feed"></div>
 
@@ -51,6 +49,35 @@ function quickSearch(term) {
   fetchDocs();
 }
 
+  function routeAgency(agency) {
+  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
+  let url = "";
+
+  switch (agency) {
+    case "FBI":
+      url = `https://vault.fbi.gov/search?SearchableText=${encodeURIComponent(query)}`;
+      break;
+
+    case "CIA":
+      url = `https://www.cia.gov/readingroom/search/site/${encodeURIComponent(query)}`;
+      break;
+
+    case "NSA":
+      url = `https://www.nsa.gov/news-features/declassified-documents/?s=${encodeURIComponent(query)}`;
+      break;
+
+    case "DOD":
+      url = `https://www.esd.whs.mil/FOIA/Reading-Room/?q=${encodeURIComponent(query)}`;
+      break;
+
+    default:
+      fetchDocs(); // fallback to GovInfo
+      return;
+  }
+
+  window.open(url, "_blank");
+}
+  
 document.getElementById("searchButton").addEventListener("click", fetchDocs);
 
 async function fetchDocs() {
