@@ -3,86 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DeclassifyX</title>
+  <title>DeclassifyX | FOIA Terminal</title>
   <style>
-    /* 1. LAYOUT & RESET */
+    /* RESET & LAYOUT */
     * { box-sizing: border-box; }
     body { 
       background:#000; color:#0ff; font-family:'Courier New', monospace; 
-      padding:15px; margin: 0; overflow-x:hidden;
-      display: flex; flex-direction: column; align-items: center;
+      padding:15px; margin:0; overflow-x:hidden;
+      display:flex; flex-direction:column; align-items:center;
     }
 
-    /* 2. NAVIGATION & HOME */
+    /* NAVIGATION */
     .nav-header {
-      width: 100%;
-      max-width: 400px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
+      width:100%; max-width:400px;
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:10px;
     }
     .home-btn {
-      text-decoration: none;
-      font-size: 24px;
-      border: 1px solid #0ff;
-      padding: 5px 10px;
-      border-radius: 4px;
-      background: rgba(0, 255, 255, 0.1);
+      text-decoration:none; font-size:24px; border:1px solid #0ff;
+      padding:5px 12px; border-radius:4px; background: rgba(0,255,255,0.1);
+      box-shadow:0 0 5px #0ff;
     }
+    .nav-label { font-size:10px; opacity:0.6; letter-spacing:1px; }
 
-    /* 3. STATUS BAR */
-    .status-bar { 
-      width: 100%; max-width: 400px; text-align:center; 
-      margin-bottom:15px; font-size: 11px; letter-spacing:1px; 
-      border: 1px solid #333; padding: 8px; 
-    }
+    /* STATUS BAR */
+    .status-bar { width:100%; max-width:400px; text-align:center; 
+      margin-bottom:15px; font-size:11px; letter-spacing:1px; 
+      border:1px solid #333; padding:8px; }
     #status-light { display:inline-block; width:10px; height:10px; background:#f00; border-radius:50%; margin-right:5px; }
     .online { background:#0f0 !important; box-shadow:0 0 10px #0f0 !important; }
 
-    /* 4. CONTROLS */
-    h1 { color:#0ff; text-align:center; text-shadow: 0 0 10px #0ff; margin: 0 0 15px 0; }
-    .controls { width: 100%; max-width: 400px; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-    input, button { 
-      padding:12px; background:rgba(0,0,0,0.8); border:1px solid #0ff; 
-      color:#0ff; border-radius:4px; font-size: 14px;
-    }
-    #searchQuery { flex: 1; min-width: 150px; }
-    #yearFilter { width: 80px; }
+    /* CONTROLS */
+    h1 { color:#0ff; text-align:center; text-shadow:0 0 10px #0ff; margin:0 0 15px; }
+    .controls { width:100%; max-width:400px; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+    input, button { padding:12px; background:rgba(0,0,0,0.8); border:1px solid #0ff; color:#0ff; border-radius:4px; font-size:14px; }
+    #searchQuery { flex:1; min-width:150px; }
+    #yearFilter { width:85px; }
+    #searchButton { width:100%; font-weight:bold; cursor:pointer; }
 
-    /* 5. AGENCY BUTTONS */
-    .agency-btns {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-      width: 100%; max-width: 400px; margin-bottom: 20px;
-    }
-    .btn-fbi { border-color: #002d62 !important; color: #739aff !important; }
-    .btn-cia { border-color: #4b4b4b !important; color: #d1d1d1 !important; }
-    .btn-nsa { border-color: #616161 !important; color: #ffffff !important; }
-    .btn-dod { border-color: #004439 !important; color: #66ffb3 !important; }
+    /* AGENCY BUTTONS */
+    .agency-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; max-width:400px; margin-bottom:20px; }
+    .btn-fbi { border-color:#002d62 !important; color:#739aff !important; }
+    .btn-cia { border-color:#4b4b4b !important; color:#d1d1d1 !important; }
+    .btn-nsa { border-color:#616161 !important; color:#ffffff !important; }
+    .btn-dod { border-color:#004439 !important; color:#66ffb3 !important; }
 
-    /* 6. HISTORY & FEED */
+    /* HISTORY & FEED */
     #history-container { width:100%; max-width:400px; margin-bottom:20px; text-align:center; }
-    #history-list button { margin: 2px; font-size: 10px; padding: 5px 10px; border-color: #444; }
-    #feed { width: 100%; max-width: 450px; display:flex; flex-direction:column; gap:15px; }
-    .post { 
-      border-left:4px solid #0ff; padding:15px; background:rgba(10,10,10,0.9); 
-      word-wrap:break-word; border-radius: 0 8px 8px 0; 
-    }
-    .meta { font-size:12px; color:#0ff; margin-top:15px; display: flex; flex-wrap: wrap; gap: 10px; }
+    #history-list { display:flex; flex-wrap:wrap; justify-content:center; gap:5px; }
+    #history-list button { margin:0; font-size:10px; padding:5px 10px; border-color:#444; cursor:pointer; }
+    #feed { width:100%; max-width:450px; display:flex; flex-direction:column; gap:15px; }
+    .post { border-left:4px solid #0ff; padding:15px; background:rgba(10,10,10,0.9); word-wrap:break-word; border-radius:0 8px 8px 0; }
+    .meta { font-size:12px; color:#0ff; margin-top:15px; display:flex; flex-wrap:wrap; gap:10px; }
 
-    /* 7. AZUL */
-    #azul-container { position:fixed; bottom:10px; right:10px; z-index: 100; text-align: center; }
-    #azul { width:60px; opacity: 0.8; cursor: pointer; }
-    #cat-bubble { background: #0ff; color: #000; font-size: 10px; padding: 5px; border-radius: 5px; display: none; margin-bottom: 5px; }
+    /* AZUL */
+    #azul-container { position:fixed; bottom:10px; right:10px; z-index:100; text-align:center; }
+    #azul { width:65px; opacity:0.8; cursor:pointer; transition:0.3s; }
+    #azul:active { transform: scale(0.9); }
+    #cat-bubble { background:#0ff; color:#000; font-size:10px; padding:6px; border-radius:5px; display:none; margin-bottom:5px; max-width:120px; box-shadow:0 0 10px #0ff;}
 
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    @keyframes pulse { 0% { opacity:1; } 50% { opacity:0.4; } 100% { opacity:1; } }
   </style>
 </head>
 <body>
 
   <div class="nav-header">
     <a href="https://maximumreality.xyz" class="home-btn">🏡</a>
-    <div style="font-size: 10px; opacity: 0.5;">DE-CLASSIFIED TERMINAL</div>
+    <div class="nav-label">MAXIMUM REALITY :: UPLINK</div>
   </div>
 
   <div id="azul-container">
@@ -99,17 +86,18 @@
   <div class="controls">
     <input type="text" id="searchQuery" placeholder="Keyword (UFO, etc)">
     <input type="text" id="yearFilter" placeholder="Year">
-    <button id="searchButton" style="width: 100%;">EXECUTE SEARCH</button>
+    <button id="searchButton">EXECUTE SEARCH</button>
   </div>
 
   <div class="agency-btns">
     <button class="btn-fbi" onclick="routeAgency('FBI')">FBI VAULT</button>
-    <button class="btn-cia" onclick="CIA ROOM" onclick="routeAgency('CIA')">CIA ROOM</button>
-    <button class="btn-nsa" onclick="NSA FILES" onclick="routeAgency('NSA')">NSA FILES</button>
-    <button class="btn-dod" onclick="DOD ROOM" onclick="routeAgency('DOD')">DOD ROOM</button>
+    <button class="btn-cia" onclick="routeAgency('CIA')">CIA ROOM</button>
+    <button class="btn-nsa" onclick="routeAgency('NSA')">NSA FILES</button>
+    <button class="btn-dod" onclick="routeAgency('DOD')">DOD ROOM</button>
   </div>
 
   <div id="history-container">
+    <div style="font-size:9px; color:#555; margin-bottom:5px;">RECENT SIGNALS:</div>
     <div id="history-list"></div>
   </div>
 
@@ -128,8 +116,9 @@ let searchHistory = [];
 const music = document.getElementById("bgMusic");
 let musicStarted = false;
 
+// Azul animation
 setInterval(() => {
-  let azulImg = document.getElementById("azul");
+  const azulImg = document.getElementById("azul");
   if(azulImg){
     azulImg.src = azulImg.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
   }
@@ -137,17 +126,19 @@ setInterval(() => {
 
 function azulTalk() {
   const bubble = document.getElementById("cat-bubble");
-  const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!"];
+  const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!","Connection secure.","Great work!"];
   bubble.innerText = tips[Math.floor(Math.random()*tips.length)];
   bubble.style.display = "block";
   setTimeout(() => { bubble.style.display = "none"; }, 3000);
 }
 
+// Search button
 document.getElementById("searchButton").addEventListener("click", () => {
   if(!musicStarted){ music.play().catch(e=>console.log(e)); musicStarted=true; }
   fetchDocs();
 });
 
+// Agency routing
 function routeAgency(agency) {
   const query = document.getElementById("searchQuery").value.trim() || "intelligence";
   let url = "";
@@ -162,13 +153,13 @@ function routeAgency(agency) {
   fetchDocs();
 }
 
+// Search history
 function saveToHistory(term) {
   if (!term || searchHistory.includes(term)) return;
   searchHistory.unshift(term);
   if (searchHistory.length > 5) searchHistory.pop();
   renderHistory();
 }
-
 function renderHistory() {
   const hList = document.getElementById("history-list");
   hList.innerHTML = "";
@@ -180,8 +171,9 @@ function renderHistory() {
   });
 }
 
+// Fetch documents
 async function fetchDocs() {
-  if (isLoading) return;
+  if(isLoading) return;
   isLoading = true;
   const feed = document.getElementById("feed");
   const statusLight = document.getElementById("status-light");
@@ -192,48 +184,52 @@ async function fetchDocs() {
   const year = yearMatch ? yearMatch[0] : "";
 
   saveToHistory(query);
-  feed.innerHTML = "<div class='post' style='animation: pulse 1s infinite;'>📡 INTERCEPTING...</div>";
+  feed.innerHTML = "<div class='post' style='animation:pulse 1s infinite;'>📡 INTERCEPTING...</div>";
   statusLight.style.background = "#ff0";
   statusText.innerText = "SEARCHING...";
 
   let finalQuery = query;
-  if (year) finalQuery += ` AND publishdate:${year}`;
+  if(year) finalQuery += ` AND publishdate:${year}`;
 
-  const payload = { "query": finalQuery, "pageSize": 10, "offsetMark": "*", "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }] };
+  const payload = { query: finalQuery, pageSize:10, offsetMark:"*", sorts:[{field:"publishdate", sortOrder:"DESC"}] };
 
   try {
     const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(`https://api.govinfo.gov/search?api_key=${API_KEY}`), {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)
     });
     const data = await res.json();
-    if (data.results && data.results.length > 0) {
-      statusLight.className = "online";
-      statusText.innerText = "LINK ACTIVE";
-      feed.innerHTML = "";
+    if(data.results && data.results.length > 0){
+      statusLight.className="online";
+      statusText.innerText="LINK ACTIVE";
+      feed.innerHTML="";
       data.results.forEach(pkg => {
-        let score = 0;
-        const checkText = (pkg.title + (pkg.snippet || "")).toLowerCase();
-        keywords.forEach(k => { if(checkText.includes(k)) score++; });
+        let score=0;
+        const checkText = (pkg.title + (pkg.snippet||"")).toLowerCase();
+        keywords.forEach(k=>{if(checkText.includes(k)) score++;});
         const tweet = encodeURIComponent(`🚨 Found on #DeclassifyX: ${pkg.title}`);
         const div = document.createElement("div");
-        div.className = "post";
-        div.innerHTML = `
-          <div style="color:#0ff; font-size:10px; margin-bottom:5px;">[STRENGTH: ${"🔥".repeat(Math.min(3, score))}]</div>
-          <div style="font-weight:bold; color:#f0f; margin-bottom:8px;">${pkg.title}</div>
-          <p style="font-size:14px; line-height:1.5;">${pkg.snippet || "View file..."}</p>
+        div.className="post";
+        div.innerHTML=`
+          <div style="color:#0ff;font-size:10px;margin-bottom:5px;">[STRENGTH: ${"🔥".repeat(Math.min(3,score))}]</div>
+          <div style="font-weight:bold;color:#f0f;margin-bottom:8px;">${pkg.title}</div>
+          <p style="font-size:14px;line-height:1.5;">${pkg.snippet||"View file..."}</p>
           <div class="meta">
-            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:8px;">[FILE]</a>
-            <a href="https://twitter.com/intent/tweet?text=${tweet}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:8px;">[SHARE]</a>
+            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff;text-decoration:none;border:1px solid #0ff;padding:8px;">[FILE]</a>
+            <a href="https://twitter.com/intent/tweet?text=${tweet}" target="_blank" style="color:#1d9bf0;text-decoration:none;border:1px solid #1d9bf0;padding:8px;">[SHARE]</a>
           </div>`;
         feed.appendChild(div);
       });
-    } else { feed.innerHTML = "<div class='post'>🛑 NO DATA FOUND.</div>"; }
-  } catch (err) {
-    statusLight.style.background = "#f00";
-    statusText.innerText = "OFFLINE";
-    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 ERROR: Check connection.</div>`;
+    } else {
+      feed.innerHTML="<div class='post'>🛑 NO DATA FOUND.</div>";
+      statusLight.style.background="#f00";
+      statusText.innerText="NO DATA";
+    }
+  } catch(err){
+    statusLight.style.background="#f00";
+    statusText.innerText="OFFLINE";
+    feed.innerHTML=`<div class='post' style='color:#ff0;'>📡 ERROR: Check connection.</div>`;
   }
-  isLoading = false;
+  isLoading=false;
 }
 </script>
 </body>
