@@ -104,74 +104,74 @@
   <div id="feed"></div>
 
   <script>
-  // Display "Classified" message with CRT flicker and animated Azul bubble
-  window.onload = () => {
-    const feed = document.getElementById("feed");
+window.addEventListener("DOMContentLoaded", () => {
+  const feed = document.getElementById("feed");
+  const azulImg = document.getElementById("azul");
+  const bubble = document.getElementById("cat-bubble");
+  const music = document.getElementById("bgMusic");
+  let musicStarted = false;
 
-    // Insert the initial classified message
-    feed.innerHTML = `
-      <div class="post" id="crtPost" style="border-color: #f0f; color: #f0f; text-align: center;">
-        <pre style="font-size: 10px; line-height: 1.2; color: #f0f; text-shadow: 0 0 8px #f0f;">
+  // --- INITIAL "CLASSIFIED" POST ---
+  feed.innerHTML = `
+    <div class="post" id="crtPost" style="border-color: #f0f; color: #f0f; text-align:center;">
+      <pre style="font-size: 10px; line-height: 1.2; color: #f0f; text-shadow: 0 0 8px #f0f;">
 ██████╗ ███████╗ ██████╗██╗      █████╗ ███████╗███████╗██╗███████╗██████╗ 
 ██╔══██╗██╔════╝██╔════╝██║     ██╔══██╗██╔════╝██╔════╝██║██╔════╝██╔══██╗
 ██║  ██║█████╗  ██║     ██║     ███████║███████╗███████╗██║█████╗  ██║  ██║
 ██║  ██║██╔══╝  ██║     ██║     ██╔══██║╚════██║╚════██║██║██╔══╝  ██║  ██║
 ██████╔╝███████╗╚██████╗███████╗██║  ██║███████║███████║██║███████╗██████╔╝
 ╚═════╝ ╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚══════╝╚═════╝
-        </pre>
-        <div style="letter-spacing: 5px; font-weight: bold; margin-top: 10px; text-shadow: 0 0 5px #f0f;">
-          [ RESTRICTED ACCESS : LEVEL 5 CLEARANCE ]
-        </div>
-        <p style="font-size: 12px; color: #0ff; margin-top:5px;">Welcome back, Agent. Use the uplink to scan federal frequencies.</p>
+      </pre>
+      <div style="letter-spacing:5px; font-weight:bold; margin-top:10px; text-shadow:0 0 5px #f0f;">
+        [ RESTRICTED ACCESS : LEVEL 5 CLEARANCE ]
       </div>
-    `;
+      <p style="font-size:12px; color:#0ff; margin-top:5px;">Welcome back, Agent. Use the uplink to scan federal frequencies.</p>
+    </div>
+  `;
 
-    const crt = document.getElementById("crtPost");
+  const crt = document.getElementById("crtPost");
 
-    // CRT flicker effect
-    setInterval(() => {
-      const opacity = 0.7 + Math.random() * 0.3; // random flicker
-      const blur = 0 + Math.random() * 2; // slight blur flicker
-      crt.style.opacity = opacity;
-      crt.style.textShadow = `0 0 ${2 + blur}px #f0f`;
-    }, 100); // flicker every 100ms
+  // --- CRT FLICKER ---
+  setInterval(() => {
+    const opacity = 0.7 + Math.random() * 0.3;
+    const blur = Math.random() * 2;
+    crt.style.opacity = opacity;
+    crt.style.textShadow = `0 0 ${2 + blur}px #f0f`;
+  }, 100);
 
-    // Start background music
-    const music = document.getElementById("bgMusic");
-    music.play().catch(() => {}); // autoplay may require user interaction
+  // --- AZUL ANIMATION ---
+  setInterval(() => {
+    azulImg.src = azulImg.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
+  }, 800);
 
-    // Animate Azul image
-    const azulImg = document.getElementById("azul");
-    setInterval(() => {
-      if(azulImg){
-        azulImg.src = azulImg.src.includes("cat2") ? "azul-cat.png" : "azul-cat2.png";
-      }
-    }, 800);
+  // --- AZUL SPEECH BUBBLE ---
+  const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!","Connection secure.","Great work!"];
 
-    // Azul speech bubble animation
-    const bubble = document.getElementById("cat-bubble");
-    const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!","Connection secure.","Great work!"];
-    function azulTalkLoop() {
-      bubble.innerText = tips[Math.floor(Math.random()*tips.length)];
-      bubble.style.display = "block";
-      bubble.style.opacity = "0";
-      let fade = 0;
-      const fadeInterval = setInterval(() => {
-        fade += 0.05;
-        bubble.style.opacity = fade;
-        if(fade >= 1){
-          clearInterval(fadeInterval);
-          setTimeout(() => {
-            bubble.style.display = "none";
-          }, 2000);
-        }
-      }, 50);
+  function azulTalk() {
+    bubble.innerText = tips[Math.floor(Math.random()*tips.length)];
+    bubble.style.display = "block";
+    bubble.style.opacity = "1";
+    setTimeout(() => { bubble.style.display = "none"; }, 3000);
+  }
+
+  // Auto bubble every 8 seconds
+  setInterval(azulTalk, 8000);
+
+  // Bubble on click
+  azulImg.addEventListener("click", azulTalk);
+
+  // --- MUSIC CONTROL ---
+  function startMusic() {
+    if(!musicStarted){
+      music.play().catch(() => {}); // may require interaction
+      musicStarted = true;
     }
+  }
 
-    // Show bubble every 8 seconds
-    setInterval(azulTalkLoop, 8000);
-    azulTalkLoop(); // show immediately on load
-  };
+  // Start music on any user interaction (click/keypress)
+  document.body.addEventListener("click", startMusic, { once: true });
+  document.body.addEventListener("keydown", startMusic, { once: true });
+});
 </script>
 
   <audio id="bgMusic" loop>
