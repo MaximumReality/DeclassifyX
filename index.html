@@ -13,8 +13,25 @@
       display: flex; flex-direction: column; align-items: center;
     }
 
-    /* 2. HEADER & STATUS */
-    h1 { color:#0ff; text-align:center; text-shadow: 0 0 10px #0ff; margin: 10px 0; }
+    /* 2. NAVIGATION & HOME */
+    .nav-header {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .home-btn {
+      text-decoration: none;
+      font-size: 24px;
+      border: 1px solid #0ff;
+      padding: 5px 10px;
+      border-radius: 4px;
+      background: rgba(0, 255, 255, 0.1);
+    }
+
+    /* 3. STATUS BAR */
     .status-bar { 
       width: 100%; max-width: 400px; text-align:center; 
       margin-bottom:15px; font-size: 11px; letter-spacing:1px; 
@@ -23,7 +40,8 @@
     #status-light { display:inline-block; width:10px; height:10px; background:#f00; border-radius:50%; margin-right:5px; }
     .online { background:#0f0 !important; box-shadow:0 0 10px #0f0 !important; }
 
-    /* 3. CONTROLS & INPUTS */
+    /* 4. CONTROLS */
+    h1 { color:#0ff; text-align:center; text-shadow: 0 0 10px #0ff; margin: 0 0 15px 0; }
     .controls { width: 100%; max-width: 400px; margin-bottom:15px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
     input, button { 
       padding:12px; background:rgba(0,0,0,0.8); border:1px solid #0ff; 
@@ -32,7 +50,7 @@
     #searchQuery { flex: 1; min-width: 150px; }
     #yearFilter { width: 80px; }
 
-    /* 4. AGENCY BUTTONS (Centered Grid) */
+    /* 5. AGENCY BUTTONS */
     .agency-btns {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
       width: 100%; max-width: 400px; margin-bottom: 20px;
@@ -42,11 +60,9 @@
     .btn-nsa { border-color: #616161 !important; color: #ffffff !important; }
     .btn-dod { border-color: #004439 !important; color: #66ffb3 !important; }
 
-    /* 5. SEARCH HISTORY (Memory Safety Net) */
+    /* 6. HISTORY & FEED */
     #history-container { width:100%; max-width:400px; margin-bottom:20px; text-align:center; }
     #history-list button { margin: 2px; font-size: 10px; padding: 5px 10px; border-color: #444; }
-
-    /* 6. FEED & POSTS */
     #feed { width: 100%; max-width: 450px; display:flex; flex-direction:column; gap:15px; }
     .post { 
       border-left:4px solid #0ff; padding:15px; background:rgba(10,10,10,0.9); 
@@ -54,18 +70,20 @@
     }
     .meta { font-size:12px; color:#0ff; margin-top:15px; display: flex; flex-wrap: wrap; gap: 10px; }
 
-    /* 7. AZUL THE CAT */
+    /* 7. AZUL */
     #azul-container { position:fixed; bottom:10px; right:10px; z-index: 100; text-align: center; }
-    #azul { width:60px; opacity: 0.8; cursor: pointer; pointer-events: auto; }
-    #cat-bubble { 
-      background: #0ff; color: #000; font-size: 10px; padding: 5px; 
-      border-radius: 5px; display: none; margin-bottom: 5px; max-width: 100px;
-    }
+    #azul { width:60px; opacity: 0.8; cursor: pointer; }
+    #cat-bubble { background: #0ff; color: #000; font-size: 10px; padding: 5px; border-radius: 5px; display: none; margin-bottom: 5px; }
 
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
   </style>
 </head>
 <body>
+
+  <div class="nav-header">
+    <a href="https://maximumreality.xyz" class="home-btn">🏡</a>
+    <div style="font-size: 10px; opacity: 0.5;">DE-CLASSIFIED TERMINAL</div>
+  </div>
 
   <div id="azul-container">
     <div id="cat-bubble">SYSTEM ONLINE</div>
@@ -86,13 +104,12 @@
 
   <div class="agency-btns">
     <button class="btn-fbi" onclick="routeAgency('FBI')">FBI VAULT</button>
-    <button class="btn-cia" onclick="routeAgency('CIA')">CIA ROOM</button>
-    <button class="btn-nsa" onclick="routeAgency('NSA')">NSA FILES</button>
-    <button class="btn-dod" onclick="routeAgency('DOD')">DOD ROOM</button>
+    <button class="btn-cia" onclick="CIA ROOM" onclick="routeAgency('CIA')">CIA ROOM</button>
+    <button class="btn-nsa" onclick="NSA FILES" onclick="routeAgency('NSA')">NSA FILES</button>
+    <button class="btn-dod" onclick="DOD ROOM" onclick="routeAgency('DOD')">DOD ROOM</button>
   </div>
 
   <div id="history-container">
-    <div style="font-size:10px; color:#555; margin-bottom:5px;">RECENT SIGNALS:</div>
     <div id="history-list"></div>
   </div>
 
@@ -108,7 +125,6 @@ const keywords = ["classified","secret","nuclear","covert","intelligence","ufo",
 let isLoading = false;
 let searchHistory = [];
 
-// Music & Cat Animation Logic
 const music = document.getElementById("bgMusic");
 let musicStarted = false;
 
@@ -121,7 +137,7 @@ setInterval(() => {
 
 function azulTalk() {
   const bubble = document.getElementById("cat-bubble");
-  const tips = ["Keep digging!","System stable.","You're doing great.","Check 1999!","Logic is power."];
+  const tips = ["Search 1999!","Logic is sharp.","System ready.","Stay curious!"];
   bubble.innerText = tips[Math.floor(Math.random()*tips.length)];
   bubble.style.display = "block";
   setTimeout(() => { bubble.style.display = "none"; }, 3000);
@@ -132,10 +148,8 @@ document.getElementById("searchButton").addEventListener("click", () => {
   fetchDocs();
 });
 
-// Agency Routing Addition
 function routeAgency(agency) {
-  const queryInput = document.getElementById("searchQuery");
-  const query = queryInput.value.trim() || "intelligence";
+  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
   let url = "";
   switch (agency) {
     case "FBI": url = `https://vault.fbi.gov/search?SearchableText=${encodeURIComponent(query)}`; break;
@@ -169,15 +183,13 @@ function renderHistory() {
 async function fetchDocs() {
   if (isLoading) return;
   isLoading = true;
-
   const feed = document.getElementById("feed");
   const statusLight = document.getElementById("status-light");
   const statusText = document.getElementById("status-text");
-  
+  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
   const rawYear = document.getElementById("yearFilter").value;
   const yearMatch = rawYear.match(/\d{4}/);
   const year = yearMatch ? yearMatch[0] : "";
-  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
 
   saveToHistory(query);
   feed.innerHTML = "<div class='post' style='animation: pulse 1s infinite;'>📡 INTERCEPTING...</div>";
@@ -187,19 +199,13 @@ async function fetchDocs() {
   let finalQuery = query;
   if (year) finalQuery += ` AND publishdate:${year}`;
 
-  const payload = {
-    "query": finalQuery,
-    "pageSize": 10, "offsetMark": "*",
-    "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }]
-  };
+  const payload = { "query": finalQuery, "pageSize": 10, "offsetMark": "*", "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }] };
 
   try {
     const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(`https://api.govinfo.gov/search?api_key=${API_KEY}`), {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
     });
     const data = await res.json();
-
     if (data.results && data.results.length > 0) {
       statusLight.className = "online";
       statusText.innerText = "LINK ACTIVE";
@@ -208,26 +214,23 @@ async function fetchDocs() {
         let score = 0;
         const checkText = (pkg.title + (pkg.snippet || "")).toLowerCase();
         keywords.forEach(k => { if(checkText.includes(k)) score++; });
-        const tweet = encodeURIComponent(`🚨 Declassified: ${pkg.title}`);
+        const tweet = encodeURIComponent(`🚨 Found on #DeclassifyX: ${pkg.title}`);
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
           <div style="color:#0ff; font-size:10px; margin-bottom:5px;">[STRENGTH: ${"🔥".repeat(Math.min(3, score))}]</div>
           <div style="font-weight:bold; color:#f0f; margin-bottom:8px;">${pkg.title}</div>
-          <p style="font-size:14px; line-height:1.5;">${pkg.snippet || "Access PDF for full intel..."}</p>
+          <p style="font-size:14px; line-height:1.5;">${pkg.snippet || "View file..."}</p>
           <div class="meta">
             <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:8px;">[FILE]</a>
             <a href="https://twitter.com/intent/tweet?text=${tweet}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:8px;">[SHARE]</a>
-          </div>
-        `;
+          </div>`;
         feed.appendChild(div);
       });
-    } else {
-      feed.innerHTML = "<div class='post'>🛑 NO DATA FOUND.</div>";
-    }
+    } else { feed.innerHTML = "<div class='post'>🛑 NO DATA FOUND.</div>"; }
   } catch (err) {
     statusLight.style.background = "#f00";
-    statusText.innerText = "SIGNAL LOST";
+    statusText.innerText = "OFFLINE";
     feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 ERROR: Check connection.</div>`;
   }
   isLoading = false;
