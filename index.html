@@ -5,32 +5,31 @@
 <title>DeclassifyX</title>
 <style>
   body { background:#000; color:#0ff; font-family:'Courier New', monospace; padding:20px; overflow-x:hidden; }
-  h1 { color:#0ff; text-align:center; }
-  .status-bar { text-align:center; margin-bottom:10px; font-size:12px; letter-spacing:2px; }
-  #status-light { display:inline-block; width:10px; height:10px; background:#f00; border-radius:50%; margin-right:5px; box-shadow: 0 0 5px #f00; }
-  .online { background:#0f0 !important; box-shadow:0 0 10px #0f0 !important; }
+  h1 { color:#0ff; text-align:center; text-shadow: 0 0 10px #0ff; }
+  .status-bar { text-align:center; margin-bottom:15px; font-size:12px; letter-spacing:2px; border: 1px solid #333; padding: 5px; }
+  #status-light { display:inline-block; width:10px; height:10px; background:#f00; border-radius:50%; margin-right:5px; }
   .controls { margin-bottom:20px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
-  input, button { padding:8px; background:rgba(0,0,0,0.6); border:1px solid #0ff; color:#0ff; border-radius:4px; }
+  input, button { padding:10px; background:rgba(0,0,0,0.8); border:1px solid #0ff; color:#0ff; border-radius:4px; }
   button:hover { background:#0ff; color:#000; cursor:pointer; }
   #feed { display:flex; flex-direction:column; gap:15px; }
-  .post { border-left:4px solid #0ff; padding:15px; background:rgba(0,0,0,0.7); word-wrap:break-word; }
-  .meta { font-size:12px; color:#0ff; margin-top:5px; }
-  #azul { position:fixed; bottom:10px; right:10px; width:80px; animation:float 3s infinite alternate ease-in-out; }
-  @keyframes float { 0% { transform: translateY(0px);} 100% { transform: translateY(-20px);} }
+  .post { border-left:4px solid #0ff; padding:15px; background:rgba(10,10,10,0.9); word-wrap:break-word; border-radius: 0 8px 8px 0; }
+  .meta { font-size:12px; color:#0ff; margin-top:10px; display: flex; gap: 15px; }
+  #azul { position:fixed; bottom:10px; right:10px; width:70px; opacity: 0.7; pointer-events: none; }
+  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 </style>
 </head>
 <body>
 
 <div class="status-bar">
-  <span id="status-light"></span> SYSTEM STATUS: <span id="status-text">OFFLINE</span>
+  <span id="status-light"></span> SYSTEM: <span id="status-text">OFFLINE</span>
 </div>
 
-<img id="azul" src="azul-cat.png" alt="Azul Hacker Cat">
 <h1>📂 DeclassifyX</h1>
 
 <div class="controls">
-  <input type="text" id="searchQuery" placeholder="Keyword (UFO, CIA, etc)">
-  <button id="searchButton">Search</button>
+  <input type="text" id="searchQuery" placeholder="Keyword (UFO, etc)">
+  <input type="text" id="yearFilter" placeholder="Year (e.g. 1999)" style="width: 100px;">
+  <button id="searchButton">EXECUTE SEARCH</button>
 </div>
 
 <div class="controls">
@@ -42,16 +41,11 @@
 
 <div id="feed"></div>
 
-<audio id="bgMusic" loop>
-  <source src="synthwave-loop.mp3" type="audio/mpeg">
-</audio>
-
 <script>
 const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
-const keywords = ["classified","secret","nuclear","covert","surveillance","weapon","operation","intelligence","ufo","uap"];
+const keywords = ["classified","secret","nuclear","covert","intelligence","ufo","uap","redacted"];
 let isLoading = false;
 
-// Quick-Tap Search Function
 function quickSearch(term) {
   document.getElementById("searchQuery").value = term;
   fetchDocs();
@@ -65,31 +59,30 @@ async function fetchDocs() {
 
   const feed = document.getElementById("feed");
   const statusLight = document.getElementById("status-light");
-  const queryInput = document.getElementById("searchQuery").value.trim() || "intelligence";
-  const yearInput = document.getElementById("yearFilter").value.trim();
+  const statusText = document.getElementById("status-text");
+  
+  // Logic to handle typos: Only take the 4 digits if a year is entered
+  const rawYear = document.getElementById("yearFilter").value;
+  const yearMatch = rawYear.match(/\d{4}/);
+  const year = yearMatch ? yearMatch[0] : "";
+  const query = document.getElementById("searchQuery").value.trim() || "intelligence";
 
-  feed.innerHTML = "<div class='post'>📡 FILTERING SECTOR DATA...</div>";
-  statusLight.style.background = "#ff0"; 
+  feed.innerHTML = "<div class='post' style='animation: pulse 1s infinite;'>📡 INTERCEPTING SATELLITE UPLINK...</div>";
+  statusLight.style.background = "#ff0";
+  statusText.innerText = "SEARCHING...";
 
-  // PRECISION FILTERING:
-  // We use 'publishdate' to force the year and 'sort' to keep it chronological
-  let finalQuery = queryInput;
-  if (yearInput.match(/\d{4}/)) {
-      finalQuery = `${queryInput} AND publishdate:${yearInput.match(/\d{4}/)[0]}`;
-  }
+  let finalQuery = query;
+  if (year) finalQuery += ` AND publishdate:${year}`;
 
   const payload = {
     "query": finalQuery,
     "pageSize": 10,
     "offsetMark": "*",
-    "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }] // Newest first
+    "sorts": [{ "field": "publishdate", "sortOrder": "DESC" }]
   };
 
-  const targetUrl = `https://api.govinfo.gov/search?api_key=${API_KEY}`;
-  const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
-
   try {
-    const res = await fetch(proxyUrl, {
+    const res = await fetch(`https://corsproxy.io/?` + encodeURIComponent(`https://api.govinfo.gov/search?api_key=${API_KEY}`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -99,37 +92,39 @@ async function fetchDocs() {
 
     if (data.results && data.results.length > 0) {
       statusLight.style.background = "#0f0";
+      statusText.innerText = "LINK ESTABLISHED";
       feed.innerHTML = "";
 
       data.results.forEach(pkg => {
-        // Only show the post if it's not a random legislative "bill" (unless you want those)
+        let score = 0;
+        const checkText = (pkg.title + (pkg.snippet || "")).toLowerCase();
+        keywords.forEach(k => { if(checkText.includes(k)) score++; });
+
+        const tweet = encodeURIComponent(`🚨 Found this on #DeclassifyX: ${pkg.title}`);
+        
         const div = document.createElement("div");
         div.className = "post";
         div.innerHTML = `
-          <div style="color:#0ff; font-size:10px; border-bottom:1px solid #333; margin-bottom:5px;">
-            [VERIFIED RECORD: ${pkg.dateIssued}]
-          </div>
-          <div style="font-weight:bold; color:#f0f; margin-bottom:5px;">${pkg.title}</div>
-          <p style="font-size:14px; line-height:1.4; color:#fff; opacity:0.9;">
-            ${pkg.snippet ? pkg.snippet : "Click source to decrypt full dossier..."}
-          </p>
+          <div style="color:#0ff; font-size:10px; margin-bottom:5px;">[STRENGTH: ${"🔥".repeat(Math.min(3, score))}]</div>
+          <div style="font-weight:bold; color:#f0f; margin-bottom:8px;">${pkg.title}</div>
+          <p style="font-size:14px; line-height:1.5;">${pkg.snippet || "Access PDF for full intel..."}</p>
           <div class="meta">
-            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#0ff; text-decoration:none;">[VIEW ORIGINAL PDF]</a>
+            <a href="https://www.govinfo.gov/app/details/${pkg.packageId}" target="_blank" style="color:#fff; text-decoration:none; border:1px solid #0ff; padding:4px;">[DOSSIER]</a>
+            <a href="https://twitter.com/intent/tweet?text=${tweet}" target="_blank" style="color:#1d9bf0; text-decoration:none; border:1px solid #1d9bf0; padding:4px;">[SHARE]</a>
           </div>
         `;
         feed.appendChild(div);
       });
     } else {
-      feed.innerHTML = "<div class='post'>🛑 NO MATCHING INTEL FOR THAT YEAR/KEYWORD.</div>";
+      feed.innerHTML = "<div class='post'>🛑 NO DATA IN THIS SECTOR. TRY A DIFFERENT YEAR.</div>";
     }
   } catch (err) {
     statusLight.style.background = "#f00";
-    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 SIGNAL TIMEOUT. Reason: ${err.message}</div>`;
+    statusText.innerText = "SIGNAL LOST";
+    feed.innerHTML = `<div class='post' style='color:#ff0;'>📡 ERROR: Check internet or try a simpler keyword.</div>`;
   }
   isLoading = false;
 }
-
-
 </script>
 </body>
 </html>
