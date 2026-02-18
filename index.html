@@ -19,6 +19,7 @@
 </style>
 </head>
 <body>
+  <img id="azul" src="azul-cat.png" alt="Azul Hacker Cat">
 
 <div class="status-bar">
   <span id="status-light"></span> SYSTEM: <span id="status-text">OFFLINE</span>
@@ -39,6 +40,11 @@
 
 <div id="feed"></div>
 
+  <audio id="bgMusic" loop>
+  <source src="synthwave-loop.mp3" type="audio/mpeg">
+</audio>
+
+
 <script>
 const API_KEY = "T6cddaelRSPTKEuhmHzZvTqhG8ZB4bYsH6BfmsLO";
 const keywords = ["classified","secret","nuclear","covert","intelligence","ufo","uap","redacted"];
@@ -48,6 +54,21 @@ function quickSearch(term) {
   document.getElementById("searchQuery").value = term;
   fetchDocs();
 }
+
+  // Music & Cat Logic
+const music = document.getElementById("bgMusic");
+let musicStarted = false;
+let azul = document.getElementById("azul");
+let azulState = false;
+setInterval(() => {
+  azulState = !azulState;
+  azul.src = azulState ? "azul-cat2.png" : "azul-cat.png";
+}, 800);
+
+document.getElementById("searchButton").addEventListener("click", () => {
+  if(!musicStarted){ music.play().catch(e=>console.log(e)); musicStarted=true; }
+  fetchDocs();
+});
 
   function routeAgency(agency) {
   const query = document.getElementById("searchQuery").value.trim() || "intelligence";
@@ -78,7 +99,7 @@ function quickSearch(term) {
   window.open(url, "_blank");
 }
   
-document.getElementById("searchButton").addEventListener("click", fetchDocs);
+
 
 async function fetchDocs() {
   if (isLoading) return;
